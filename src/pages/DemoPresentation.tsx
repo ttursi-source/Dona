@@ -811,28 +811,30 @@ export default function DemoPresentation() {
               </p>
             </div>
 
-            <div className="grid w-full gap-5 text-left sm:grid-cols-2">
-              <article className="flex flex-col justify-between rounded-3xl border border-[#38bdf8]/40 bg-[#111827]/90 p-6 shadow-lg">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#38bdf8]/15 text-[#38bdf8]">
-                  <Megaphone className="h-5 w-5" aria-hidden="true" />
-                </span>
-                <h2 className="font-baskerville mt-5 text-2xl font-bold text-[#f8fafc]">
-                  Más exposición para las marcas
-                </h2>
+            <div className="demo-business-grid text-left">
+              <article className="demo-business-card rounded-3xl border border-[#38bdf8]/40 bg-[#111827]/90 p-6 shadow-lg">
+                <div className="demo-business-card-body">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#38bdf8]/15 text-[#38bdf8]">
+                    <Megaphone className="h-6 w-6" aria-hidden="true" />
+                  </span>
+                  <h2 className="demo-business-card-title font-baskerville font-bold text-[#f8fafc]">
+                    Más exposición para las marcas
+                  </h2>
+                </div>
               </article>
 
-              <article className="flex flex-col justify-between rounded-3xl border border-amber-400/45 bg-[#0f172a]/95 p-6 shadow-[0_18px_45px_rgba(251,191,36,0.1)]">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400/15 text-[#fbbf24]">
+              <article className="demo-business-card rounded-3xl border border-amber-400/45 bg-[#0f172a]/95 p-6 shadow-[0_18px_45px_rgba(251,191,36,0.1)]">
+                <div className="demo-business-card-body">
+                  <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-400/15 text-[#fbbf24]">
                     <BadgeDollarSign className="h-6 w-6" aria-hidden="true" />
                   </span>
-                  <span className="font-baskerville rounded-2xl border border-amber-400/50 bg-[#111827] px-4 py-1 text-2xl font-bold tabular-nums text-[#fbbf24]">
+                  <h2 className="demo-business-card-title font-baskerville font-bold text-[#f8fafc]">
+                    Comisión por cliente efectivo
+                  </h2>
+                  <span className="demo-business-card-price font-baskerville shrink-0 whitespace-nowrap rounded-2xl border border-amber-400/50 bg-[#111827] px-4 py-1.5 text-xl font-bold tabular-nums text-[#fbbf24] sm:text-2xl">
                     US$ 3
                   </span>
                 </div>
-                <h2 className="font-baskerville mt-5 text-2xl font-bold text-[#f8fafc]">
-                  Comisión por cliente efectivo (US$ 3)
-                </h2>
               </article>
             </div>
           </section>
