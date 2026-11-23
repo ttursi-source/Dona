@@ -1,36 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
   BadgeDollarSign,
   BarChart3,
-  BookOpen,
   Building2,
   Camera,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
-  ExternalLink,
   FileSpreadsheet,
-  HeartPulse,
-  Laptop,
   MapPin,
   Maximize2,
   Megaphone,
   Minimize2,
   Network,
   Presentation,
-  QrCode,
-  Shirt,
-  Sofa,
   Store,
   Users,
-  Utensils,
 } from "lucide-react";
 import { toast } from "sonner";
+import BlurText from "@/components/ui/BlurText";
+import BrowserWindow from "@/components/ui/BrowserWindow";
+import ShatterType from "@/components/ui/ShatterType";
 import { DEMO_CODE } from "@/lib/seed";
 import { loginLocal } from "@/lib/session";
 import { ensureDemoSeedData, setCurrentSede } from "@/lib/store";
@@ -198,38 +192,8 @@ function SlideStats() {
 
 type TriangleVertexId = "ongs" | "marcas" | "clientes";
 
-const TRIANGLE_NODES: Record<
-  TriangleVertexId,
-  {
-    title: string;
-    role: string;
-    detail: string;
-    badge: string;
-  }
-> = {
-  ongs: {
-    title: "ONGs",
-    role: "Reciben más donaciones sin gastar recursos",
-    detail: "Aumentan el flujo constante de bienes útiles sin invertir presupuesto en difusión ni logística propia.",
-    badge: "Impacto social",
-  },
-  marcas: {
-    title: "Marcas",
-    role: "Exposición y nuevos clientes con cupones QR",
-    detail: "Entregan promociones a quienes donan, mejoran su reputación y monetizamos con comisión por cliente.",
-    badge: "Modelo de ingresos",
-  },
-  clientes: {
-    title: "Clientes",
-    role: "Donan en segundos y ganan beneficios",
-    detail: "Dejan de tirar ropa u objetos en buen estado, donan cerca de su casa y desbloquean descuentos reales.",
-    badge: "0 resistencia",
-  },
-};
-
 function SlideTriangle() {
   const [selected, setSelected] = useState<TriangleVertexId>("ongs");
-  const active = TRIANGLE_NODES[selected];
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col items-center gap-3 text-center">
@@ -247,7 +211,7 @@ function SlideTriangle() {
         </p>
       </div>
 
-      <figure className="relative w-full max-w-4xl rounded-3xl border border-slate-800/90 bg-[#111827]/75 p-3.5 shadow-[0_22px_54px_rgba(0,0,0,0.45)] sm:p-4">
+      <figure className="relative w-full max-w-4xl rounded-3xl border border-slate-800/90 bg-[#111827]/75 p-4 shadow-[0_22px_54px_rgba(0,0,0,0.45)] sm:p-5">
         <figcaption className="sr-only">
           Diagrama triangular que conecta ONGs en la cima con Marcas abajo a la izquierda y Clientes abajo a la derecha mediante cupones QR y donaciones.
         </figcaption>
@@ -397,33 +361,10 @@ function SlideTriangle() {
             </span>
           </button>
         </div>
-
-        {/* Selected vertex detail strip */}
-        <div className="mt-2 flex flex-col items-center justify-between gap-2 rounded-2xl border border-[#38bdf8]/25 bg-[#090d16]/90 px-4 py-2.5 text-left sm:flex-row">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-[#38bdf8]">
-              {active.title} · {active.badge}
-            </p>
-            <p className="mt-0.5 text-sm text-[#cbd5e1]">{active.detail}</p>
-          </div>
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-700 bg-[#111827] px-3 py-1 text-xs font-semibold text-[#7dd3fc]">
-            <QrCode className="h-3.5 w-3.5" aria-hidden="true" />
-            Comisión por cliente
-          </span>
-        </div>
       </figure>
     </section>
   );
 }
-
-const CATEGORIES = [
-  { label: "Ropa y calzado", icon: Shirt },
-  { label: "Alimentos", icon: Utensils },
-  { label: "Muebles y hogar", icon: Sofa },
-  { label: "Salud e higiene", icon: HeartPulse },
-  { label: "Tecnología", icon: Laptop },
-  { label: "Útiles y libros", icon: BookOpen },
-];
 
 const ROADMAP_PHASES = [
   {
@@ -431,34 +372,29 @@ const ROADMAP_PHASES = [
     status: "Completado",
     highlight: true,
     metric: "331 ONGs en CABA + IA + BI",
-    detail:
-      "PWA sin descargas, mapa real en CABA, inventario con foto + Gemini IA, Google Sheets/Drive y panel central de sedes.",
   },
   {
     phase: "Meses 1–3 · Si donan 10.000 personas",
     status: "10.000 donantes",
     highlight: false,
-    metric: "US$ 30.000 en comisiones (× US$ 3) · ~25 toneladas rescatadas",
-    detail:
-      "Lanzamiento piloto en CABA con primeras sedes de Cáritas y comercios adheridos activando cupones QR.",
+    metric: "US$ 30.000 en comisiones · ~25 toneladas rescatadas",
   },
   {
     phase: "Meses 4–6 · Si donan 30.000 personas",
     status: "30.000 donantes",
     highlight: false,
-    metric: "US$ 90.000 en comisiones (× US$ 3) · ~75 toneladas rescatadas",
-    detail:
-      "Escala en todo AMBA sumando red comercial de beneficios, alertas de stock por barrio y redistribución entre sedes.",
+    metric: "US$ 90.000 en comisiones · ~75 toneladas rescatadas",
   },
   {
     phase: "Meses 7–12 · Si donan 50.000 personas",
     status: "50.000 donantes",
     highlight: false,
-    metric: "US$ 150.000 en comisiones (× US$ 3) · ~125 toneladas rescatadas",
-    detail:
-      "Expansión nacional y regional LATAM con reportes automáticos de impacto ambiental y analítica predictiva.",
+    metric: "US$ 150.000 en comisiones · ~125 toneladas rescatadas",
   },
 ];
+
+const SLIDE_EXIT_MS = 380;
+const SLIDE_COOLDOWN_MS = 1500;
 
 export default function DemoPresentation() {
   const navigate = useNavigate();
@@ -470,14 +406,32 @@ export default function DemoPresentation() {
     }
     return 0;
   });
+  const [navDirection, setNavDirection] = useState<"forward" | "backward">("forward");
+  const [isExiting, setIsExiting] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const deckRef = useRef<HTMLDivElement>(null);
   const slideStageRef = useRef<HTMLDivElement>(null);
+  const lockRef = useRef(false);
+  const exitTimerRef = useRef<number | null>(null);
+  const unlockTimerRef = useRef<number | null>(null);
   const mapaUrl = `${import.meta.env.BASE_URL}mapa.html`;
   const isFirst = index === 0;
   const isLast = index === SLIDES.length - 1;
   const activeSlide = SLIDES[index];
+
+  // Clear pending transition timers on unmount
+  useEffect(() => {
+    return () => {
+      if (exitTimerRef.current !== null) {
+        window.clearTimeout(exitTimerRef.current);
+      }
+      if (unlockTimerRef.current !== null) {
+        window.clearTimeout(unlockTimerRef.current);
+      }
+    };
+  }, []);
 
   // Sync document.title while presenting and restore on unmount
   useEffect(() => {
@@ -500,35 +454,34 @@ export default function DemoPresentation() {
   const goToSlide = useCallback(
     (target: number) => {
       const clamped = Math.max(0, Math.min(SLIDES.length - 1, target));
-      if (clamped === index) return;
+      if (clamped === index || lockRef.current) return;
 
-      const direction = clamped > index ? "demo-forward" : "demo-backward";
-      const canTransition =
-        typeof document !== "undefined" &&
-        typeof document.startViewTransition === "function" &&
-        !prefersReducedMotionNow();
+      const direction = clamped > index ? "forward" : "backward";
 
-      const applyUpdate = () => {
+      if (prefersReducedMotionNow()) {
+        setNavDirection(direction);
         setIndex(clamped);
         slideStageRef.current?.scrollTo?.({ top: 0 });
-      };
-
-      if (canTransition) {
-        try {
-          document.startViewTransition({
-            update: () => {
-              flushSync(applyUpdate);
-            },
-            types: [direction],
-          });
-          return;
-        } catch {
-          applyUpdate();
-          return;
-        }
+        return;
       }
 
-      applyUpdate();
+      lockRef.current = true;
+      setIsLocked(true);
+      setNavDirection(direction);
+      setIsExiting(true);
+
+      exitTimerRef.current = window.setTimeout(() => {
+        setIndex(clamped);
+        setIsExiting(false);
+        slideStageRef.current?.scrollTo?.({ top: 0 });
+        exitTimerRef.current = null;
+      }, SLIDE_EXIT_MS);
+
+      unlockTimerRef.current = window.setTimeout(() => {
+        lockRef.current = false;
+        setIsLocked(false);
+        unlockTimerRef.current = null;
+      }, SLIDE_COOLDOWN_MS);
     },
     [index]
   );
@@ -629,15 +582,22 @@ export default function DemoPresentation() {
       case 0:
         return (
           <section className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center text-center">
-            <h1 className="font-baskerville text-3xl font-bold leading-snug tracking-tight text-[#f8fafc] sm:text-5xl md:text-6xl">
-              ¿Cuántas veces tiraste ropa{" "}
-              <span className="text-[#38bdf8]">en perfectas condiciones</span> porque ya no la
-              querías?
-            </h1>
-
-            <p className="mt-8 text-sm font-medium text-[#94a3b8] sm:text-base">
-              Usá la flecha inferior o los puntos de la izquierda para avanzar.
-            </p>
+            <BlurText
+              as="h1"
+              text="¿Cuántas veces tiraste ropa en perfectas condiciones porque ya no la querías?"
+              highlightPhrase="en perfectas condiciones"
+              highlightColor="#38bdf8"
+              effect="blur"
+              animateBy="words"
+              direction="top"
+              staggerFrom="start"
+              trigger="load"
+              delay={120}
+              stepDuration={0.35}
+              blur={10}
+              distance={45}
+              className="font-baskerville justify-center text-center text-3xl font-bold leading-snug tracking-tight text-[#f8fafc] sm:text-5xl md:text-6xl"
+            />
           </section>
         );
 
@@ -646,33 +606,13 @@ export default function DemoPresentation() {
 
       case 2:
         return (
-          <section className="mx-auto flex w-full max-w-5xl flex-col items-center gap-7 text-center">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#38bdf8]/40 bg-[#111827]/85 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#7dd3fc]">
-              Nuestro propósito
-            </span>
-
-            <h1 className="font-baskerville max-w-4xl text-3xl font-bold leading-tight text-[#f8fafc] sm:text-5xl md:text-6xl">
-              Nosotros queremos{" "}
-              <span className="text-[#38bdf8]">fomentar las donaciones en general</span>
-            </h1>
-
-            <p className="max-w-2xl text-base leading-relaxed text-[#cbd5e1] sm:text-xl">
-              La ropa es el punto de partida, pero <strong className="text-[#f8fafc]">doná</strong>{" "}
-              conecta cualquier bien útil con quien más lo necesita — desde una web sin descargas y
-              con 0 resistencia.
-            </p>
-
-            <ul className="flex flex-wrap justify-center gap-3">
-              {CATEGORIES.map(({ label, icon: Icon }) => (
-                <li
-                  key={label}
-                  className="inline-flex items-center gap-2.5 rounded-2xl border border-slate-700/80 bg-[#111827]/85 px-4 py-2.5 text-sm font-semibold text-[#f8fafc] shadow-sm"
-                >
-                  <Icon className="h-4 w-4 text-[#38bdf8]" aria-hidden="true" />
-                  <span>{label}</span>
-                </li>
-              ))}
-            </ul>
+          <section className="mx-auto flex w-full max-w-5xl flex-col items-center justify-center text-center">
+            <ShatterType
+              text="Nosotros queremos fomentar las donaciones en general"
+              highlightPhrase="fomentar las donaciones en general"
+              highlightColor="#38bdf8"
+              className="font-baskerville max-w-4xl text-3xl font-bold leading-tight text-[#f8fafc] sm:text-5xl md:text-6xl"
+            />
           </section>
         );
 
@@ -682,40 +622,24 @@ export default function DemoPresentation() {
       case 4:
         return (
           <section className="mx-auto flex h-full min-h-0 w-full max-w-6xl flex-1 flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h1 className="font-baskerville text-2xl font-bold text-[#f8fafc] sm:text-3xl">
-                  Ahora sí: el mapa con todas las ONGs
-                </h1>
-                <p className="text-xs text-[#cbd5e1] sm:text-sm">
-                  Cercanía real para donar en segundos y elegir tu punto en CABA.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#38bdf8]/40 bg-[#111827]/90 px-3 py-1.5 text-xs font-bold text-[#38bdf8]">
-                  <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-                  331 organizaciones verificadas en CABA
-                </span>
-                <a
-                  href={mapaUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="demo-focus-ring inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-slate-700 bg-[#111827] px-3.5 py-1.5 text-xs font-semibold text-[#f8fafc] transition hover:border-[#38bdf8] hover:text-[#38bdf8]"
-                >
-                  <span>Abrir pantalla completa</span>
-                  <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                </a>
-              </div>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h1 className="font-baskerville text-2xl font-bold text-[#f8fafc] sm:text-3xl">
+                Ahora sí: el mapa con todas las ONGs
+              </h1>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#38bdf8]/40 bg-[#111827]/90 px-3 py-1 text-xs font-bold text-[#38bdf8]">
+                <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
+                331 organizaciones verificadas en CABA
+              </span>
             </div>
 
-            <div className="flex min-h-[340px] flex-1 overflow-hidden rounded-3xl border border-[#38bdf8]/35 bg-[#090d16] shadow-[0_20px_54px_rgba(0,0,0,0.55)]">
-              <iframe
-                src={mapaUrl}
-                title="Mapa interactivo de las 331 organizaciones receptoras de donaciones en CABA"
-                className="h-full min-h-[340px] w-full flex-1 border-0 bg-[#090d16]"
-              />
-            </div>
+            <BrowserWindow
+              url="https://dona.app"
+              tabTitle="doná · Mapa CABA"
+              badge="331 ONGs en CABA"
+              externalHref={mapaUrl}
+              iframeSrc={mapaUrl}
+              iframeTitle="Mapa interactivo de las 331 organizaciones receptoras de donaciones en CABA"
+            />
           </section>
         );
 
@@ -735,40 +659,28 @@ export default function DemoPresentation() {
               </p>
             </div>
 
-            <div className="grid w-full gap-4 text-left sm:grid-cols-3">
-              <article className="rounded-3xl border border-slate-800 bg-[#111827]/85 p-6 shadow-lg">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/15 text-[#fbbf24]">
+            <div className="grid w-full gap-4 sm:grid-cols-3">
+              <article className="flex flex-col items-center justify-center rounded-3xl border border-slate-800 bg-[#111827]/85 p-6 text-center shadow-lg">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-amber-400/15 text-[#fbbf24]">
                   <Clock className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <h2 className="mt-4 text-lg font-bold text-[#f8fafc]">
                   Registro manual y caótico
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-[#cbd5e1]">
-                  Cuadernos, mensajes de WhatsApp y fotos sueltas que colapsan apenas crece el
-                  volumen de donaciones.
-                </p>
               </article>
 
-              <article className="rounded-3xl border border-slate-800 bg-[#111827]/85 p-6 shadow-lg">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#38bdf8]/15 text-[#38bdf8]">
+              <article className="flex flex-col items-center justify-center rounded-3xl border border-slate-800 bg-[#111827]/85 p-6 text-center shadow-lg">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#38bdf8]/15 text-[#38bdf8]">
                   <Network className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <h2 className="mt-4 text-lg font-bold text-[#f8fafc]">Sedes desconectadas</h2>
-                <p className="mt-2 text-sm leading-relaxed text-[#cbd5e1]">
-                  Una Sede Central (como Cáritas) no ve en tiempo real qué sobra en una sede y qué
-                  falta en otra.
-                </p>
               </article>
 
-              <article className="rounded-3xl border border-slate-800 bg-[#111827]/85 p-6 shadow-lg">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#7dd3fc]/15 text-[#7dd3fc]">
+              <article className="flex flex-col items-center justify-center rounded-3xl border border-slate-800 bg-[#111827]/85 p-6 text-center shadow-lg">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#7dd3fc]/15 text-[#7dd3fc]">
                   <BarChart3 className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <h2 className="mt-4 text-lg font-bold text-[#f8fafc]">Sin trazabilidad ni datos</h2>
-                <p className="mt-2 text-sm leading-relaxed text-[#cbd5e1]">
-                  Sin inventario categorizado es imposible medir qué aporta cada donante ni decidir
-                  con Business Intelligence.
-                </p>
               </article>
             </div>
           </section>
@@ -788,58 +700,34 @@ export default function DemoPresentation() {
             </div>
 
             <div className="grid w-full gap-4 text-left sm:grid-cols-2">
-              <article className="rounded-3xl border border-slate-800 bg-[#111827]/85 p-5">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#38bdf8]/15 text-[#38bdf8]">
-                    <Camera className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <h2 className="text-lg font-bold text-[#f8fafc]">Foto + Gemini IA</h2>
-                </div>
-                <p className="mt-2.5 text-sm leading-relaxed text-[#cbd5e1]">
-                  Sacás una foto al producto y la IA lo etiqueta automáticamente por categoría y tipo
-                  de objeto, incluso sin conexión con cola offline.
-                </p>
+              <article className="flex items-center gap-4 rounded-3xl border border-slate-800 bg-[#111827]/85 p-6 shadow-lg">
+                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#38bdf8]/15 text-[#38bdf8]">
+                  <Camera className="h-6 w-6" aria-hidden="true" />
+                </span>
+                <h2 className="text-xl font-bold text-[#f8fafc]">Foto + Gemini IA</h2>
               </article>
 
-              <article className="rounded-3xl border border-slate-800 bg-[#111827]/85 p-5">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#38bdf8]/15 text-[#38bdf8]">
-                    <Building2 className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <h2 className="text-lg font-bold text-[#f8fafc]">Trazabilidad de donantes</h2>
-                </div>
-                <p className="mt-2.5 text-sm leading-relaxed text-[#cbd5e1]">
-                  Elegís en un toque si la donación proviene de un particular o de una empresa /
-                  organización aliada que colabora con la red.
-                </p>
+              <article className="flex items-center gap-4 rounded-3xl border border-slate-800 bg-[#111827]/85 p-6 shadow-lg">
+                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#38bdf8]/15 text-[#38bdf8]">
+                  <Building2 className="h-6 w-6" aria-hidden="true" />
+                </span>
+                <h2 className="text-xl font-bold text-[#f8fafc]">Trazabilidad de donantes</h2>
               </article>
 
-              <article className="rounded-3xl border border-slate-800 bg-[#111827]/85 p-5">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#38bdf8]/15 text-[#38bdf8]">
-                    <FileSpreadsheet className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <h2 className="text-lg font-bold text-[#f8fafc]">Google Sheets y Drive</h2>
-                </div>
-                <p className="mt-2.5 text-sm leading-relaxed text-[#cbd5e1]">
-                  Toda carga impacta directo en su planilla real y archiva cada foto en Drive sin
-                  costos de servidor ni capacitación compleja.
-                </p>
+              <article className="flex items-center gap-4 rounded-3xl border border-slate-800 bg-[#111827]/85 p-6 shadow-lg">
+                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#38bdf8]/15 text-[#38bdf8]">
+                  <FileSpreadsheet className="h-6 w-6" aria-hidden="true" />
+                </span>
+                <h2 className="text-xl font-bold text-[#f8fafc]">Google Sheets y Drive</h2>
               </article>
 
-              <article className="rounded-3xl border border-slate-800 bg-[#111827]/85 p-5">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#38bdf8]/15 text-[#38bdf8]">
-                    <BarChart3 className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <h2 className="text-lg font-bold text-[#f8fafc]">
-                    Business Intelligence central
-                  </h2>
-                </div>
-                <p className="mt-2.5 text-sm leading-relaxed text-[#cbd5e1]">
-                  Conteo de sedes unidas (por ej. red Cáritas), stock consolidado por rubro y toma
-                  de decisiones para redistribuir recursos entre sedes.
-                </p>
+              <article className="flex items-center gap-4 rounded-3xl border border-slate-800 bg-[#111827]/85 p-6 shadow-lg">
+                <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#38bdf8]/15 text-[#38bdf8]">
+                  <BarChart3 className="h-6 w-6" aria-hidden="true" />
+                </span>
+                <h2 className="text-xl font-bold text-[#f8fafc]">
+                  Business Intelligence central
+                </h2>
               </article>
             </div>
           </section>
@@ -925,48 +813,28 @@ export default function DemoPresentation() {
 
             <div className="grid w-full gap-5 text-left sm:grid-cols-2">
               <article className="flex flex-col justify-between rounded-3xl border border-[#38bdf8]/40 bg-[#111827]/90 p-6 shadow-lg">
-                <div>
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#38bdf8]/15 text-[#38bdf8]">
-                    <Megaphone className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <h2 className="font-baskerville mt-4 text-2xl font-bold text-[#f8fafc]">
-                    Más exposición para las marcas
-                  </h2>
-                  <p className="mt-2.5 text-sm leading-relaxed text-[#cbd5e1]">
-                    Les cobramos a las marcas por mayor exposición dentro de doná: presencia destacada en cupones solidarios, posicionamiento ESG y llegada directa a usuarios activos.
-                  </p>
-                </div>
-                <p className="mt-4 text-xs font-bold uppercase tracking-wider text-[#7dd3fc]">
-                  Visibilidad de alto impacto
-                </p>
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#38bdf8]/15 text-[#38bdf8]">
+                  <Megaphone className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <h2 className="font-baskerville mt-5 text-2xl font-bold text-[#f8fafc]">
+                  Más exposición para las marcas
+                </h2>
               </article>
 
               <article className="flex flex-col justify-between rounded-3xl border border-amber-400/45 bg-[#0f172a]/95 p-6 shadow-[0_18px_45px_rgba(251,191,36,0.1)]">
-                <div>
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400/15 text-[#fbbf24]">
-                      <BadgeDollarSign className="h-6 w-6" aria-hidden="true" />
-                    </span>
-                    <span className="font-baskerville rounded-2xl border border-amber-400/50 bg-[#111827] px-4 py-1 text-2xl font-bold tabular-nums text-[#fbbf24]">
-                      US$ 3
-                    </span>
-                  </div>
-                  <h2 className="font-baskerville mt-4 text-2xl font-bold text-[#f8fafc]">
-                    Comisión por cliente efectivo
-                  </h2>
-                  <p className="mt-2.5 text-sm leading-relaxed text-[#cbd5e1]">
-                    Cobramos una comisión fija de <strong className="text-[#fbbf24]">3 dólares por cada cliente</strong> que completa una donación y va a consumir con su cupón a la marca.
-                  </p>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-400/15 text-[#fbbf24]">
+                    <BadgeDollarSign className="h-6 w-6" aria-hidden="true" />
+                  </span>
+                  <span className="font-baskerville rounded-2xl border border-amber-400/50 bg-[#111827] px-4 py-1 text-2xl font-bold tabular-nums text-[#fbbf24]">
+                    US$ 3
+                  </span>
                 </div>
-                <p className="mt-4 text-xs font-bold uppercase tracking-wider text-[#fbbf24]">
-                  Solo pagan por resultados reales
-                </p>
+                <h2 className="font-baskerville mt-5 text-2xl font-bold text-[#f8fafc]">
+                  Comisión por cliente efectivo (US$ 3)
+                </h2>
               </article>
             </div>
-
-            <p className="rounded-full border border-slate-700/80 bg-[#111827]/80 px-5 py-2 text-xs font-semibold text-[#cbd5e1] sm:text-sm">
-              Cada cliente canjeando un cupón QR = <strong className="text-[#38bdf8]">US$ 3</strong> · Escala sin costos fijos de logística
-            </p>
           </section>
         );
 
@@ -979,11 +847,11 @@ export default function DemoPresentation() {
               </h1>
             </div>
 
-            <ol className="grid w-full gap-3.5 text-left sm:grid-cols-2">
+            <ol className="grid w-full gap-4 text-left sm:grid-cols-2">
               {ROADMAP_PHASES.map((item, idx) => (
                 <li
                   key={item.phase}
-                  className={`rounded-3xl border p-4 sm:p-5 shadow-lg ${
+                  className={`rounded-3xl border p-5 sm:p-6 shadow-lg ${
                     item.highlight
                       ? "border-[#38bdf8]/65 bg-[#0f172a]/95 shadow-[0_14px_38px_rgba(56,189,248,0.16)]"
                       : "border-slate-800 bg-[#111827]/85"
@@ -1004,13 +872,10 @@ export default function DemoPresentation() {
                       {item.status}
                     </span>
                   </div>
-                  <h2 className="mt-2.5 text-base font-bold text-[#f8fafc] sm:text-lg">
+                  <h2 className="mt-3 text-base font-bold text-[#f8fafc] sm:text-lg">
                     {item.phase}
                   </h2>
-                  <p className="mt-1 text-xs font-bold text-[#fbbf24] sm:text-sm">{item.metric}</p>
-                  <p className="mt-1.5 text-xs leading-relaxed text-[#cbd5e1] sm:text-sm">
-                    {item.detail}
-                  </p>
+                  <p className="mt-1.5 text-sm font-bold text-[#fbbf24]">{item.metric}</p>
                 </li>
               ))}
             </ol>
@@ -1156,6 +1021,8 @@ export default function DemoPresentation() {
       >
         <div
           key={activeSlide.id}
+          data-direction={navDirection}
+          data-exiting={isExiting ? "true" : "false"}
           className={`demo-enter-card flex w-full flex-col ${
             index === 4 ? "h-full flex-1 min-h-0" : "my-auto"
           }`}
@@ -1173,37 +1040,40 @@ export default function DemoPresentation() {
           <button
             type="button"
             aria-label="Diapositiva anterior"
-            aria-disabled={isFirst}
+            aria-disabled={isFirst || isLocked}
             onClick={() => {
-              if (!isFirst) goToSlide(index - 1);
+              if (!isFirst && !lockRef.current) goToSlide(index - 1);
             }}
             className={`demo-focus-ring inline-flex min-h-[56px] min-w-[76px] items-center justify-center rounded-full border transition sm:min-w-[104px] ${
               isFirst
                 ? "cursor-not-allowed border-slate-800 bg-[#111827]/45 text-slate-600"
-                : "cursor-pointer border-slate-600 bg-[#111827] text-[#f8fafc] shadow-md hover:-translate-y-0.5 hover:border-[#38bdf8] hover:bg-[#1e293b]"
+                : isLocked
+                  ? "cursor-wait border-slate-700 bg-[#111827]/80 text-[#94a3b8] opacity-55"
+                  : "cursor-pointer border-slate-600 bg-[#111827] text-[#f8fafc] shadow-md hover:-translate-y-0.5 hover:border-[#38bdf8] hover:bg-[#1e293b]"
             }`}
           >
             <ChevronLeft className="h-7 w-7" aria-hidden="true" />
           </button>
 
-          <div className="flex flex-col items-center text-center">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#38bdf8]">
+          <div className="flex items-center justify-center text-center">
+            <span className="text-sm font-bold tabular-nums tracking-wider text-[#38bdf8]">
               {index + 1} / {SLIDES.length}
             </span>
-            <span className="text-sm font-semibold text-[#f8fafc]">{activeSlide.shortTitle}</span>
           </div>
 
           <button
             type="button"
             aria-label="Siguiente diapositiva"
-            aria-disabled={isLast}
+            aria-disabled={isLast || isLocked}
             onClick={() => {
-              if (!isLast) goToSlide(index + 1);
+              if (!isLast && !lockRef.current) goToSlide(index + 1);
             }}
             className={`demo-focus-ring inline-flex min-h-[56px] min-w-[76px] items-center justify-center rounded-full transition sm:min-w-[104px] ${
               isLast
                 ? "cursor-not-allowed border border-slate-800 bg-[#111827]/45 text-slate-600"
-                : "cursor-pointer bg-[#38bdf8] text-[#090d16] shadow-[0_8px_28px_rgba(56,189,248,0.35)] hover:-translate-y-0.5 hover:bg-[#56ccf9]"
+                : isLocked
+                  ? "cursor-wait bg-[#38bdf8]/65 text-[#090d16] opacity-55"
+                  : "cursor-pointer bg-[#38bdf8] text-[#090d16] shadow-[0_8px_28px_rgba(56,189,248,0.35)] hover:-translate-y-0.5 hover:bg-[#56ccf9]"
             }`}
           >
             <ChevronRight className="h-7 w-7" aria-hidden="true" />

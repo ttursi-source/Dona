@@ -112,6 +112,10 @@ describe("DEMO competition presentation", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Siguiente diapositiva" }));
 
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
     expect(
       screen.getByRole("heading", {
         level: 1,
@@ -142,6 +146,65 @@ describe("DEMO competition presentation", () => {
     vi.useRealTimers();
   });
 
+  it("enforces 1.5s arrow cooldown and plays exit phase before mounting next slide", () => {
+    vi.useFakeTimers();
+
+    const { container } = render(
+      <MemoryRouter initialEntries={["/demo"]}>
+        <DemoPresentation />
+      </MemoryRouter>
+    );
+
+    const nextBtn = screen.getByRole("button", { name: "Siguiente diapositiva" });
+    fireEvent.click(nextBtn);
+
+    // Outgoing slide plays exit state before swapping
+    expect(container.querySelector('.demo-enter-card[data-exiting="true"]')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: /Solo un 24% de los argentinos donó alguna vez/i,
+      })
+    ).toBeInTheDocument();
+
+    // Tapping Next again inside the 1.5s cooldown stays on Slide 2
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    fireEvent.click(nextBtn);
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: /Solo un 24% de los argentinos donó alguna vez/i,
+      })
+    ).toBeInTheDocument();
+
+    // Once the 1.5s cooldown expires, Next advances cleanly to Slide 3
+    act(() => {
+      vi.advanceTimersByTime(900);
+    });
+    fireEvent.click(nextBtn);
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: /Nosotros queremos fomentar las donaciones en general/i,
+      })
+    ).toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
   it("navigates all 11 slides via left dot rail, large bottom arrows, and keyboard", () => {
     mockReducedMotion(true);
     render(
@@ -153,7 +216,7 @@ describe("DEMO competition presentation", () => {
     const nextBtn = screen.getByRole("button", { name: "Siguiente diapositiva" });
     const prevBtn = screen.getByRole("button", { name: "Diapositiva anterior" });
 
-    // Jump to Slide 3 (Mission — Bebés removed)
+    // Jump to Slide 3 (Mission — ShatterType only)
     fireEvent.click(screen.getByRole("button", { name: "Ir a diapositiva 3: Nuestra misión" }));
     expect(
       screen.getByRole("heading", {
@@ -161,34 +224,36 @@ describe("DEMO competition presentation", () => {
         name: /Nosotros queremos fomentar las donaciones en general/i,
       })
     ).toBeInTheDocument();
-    expect(screen.getByText("Ropa y calzado")).toBeInTheDocument();
+    expect(screen.queryByText("Ropa y calzado")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Nuestro propósito/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Bebés")).not.toBeInTheDocument();
 
-    // Jump to Slide 4 (Triangle: ONGs, Marcas, Clientes, Cupones)
+    // Jump to Slide 4 (Triangle: ONGs, Marcas, Clientes, Cupones — no bottom capsule)
     fireEvent.click(screen.getByRole("button", { name: "Ir a diapositiva 4: ¿Cómo lo haríamos?" }));
     expect(screen.getByRole("button", { name: /^ONGs\b/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Marcas\b/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Clientes\b/i })).toBeInTheDocument();
     expect(screen.getByText(/^Cupones$/i)).toBeInTheDocument();
     expect(screen.queryByText(/Cupones y clientes/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Comisión por cliente/i)).not.toBeInTheDocument();
 
-    // Keyboard forward -> Slide 5 (Live map iframe)
+    // Keyboard forward -> Slide 5 (BrowserWindow with https://dona.app and live map iframe)
     fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(screen.getByText("https://dona.app")).toBeInTheDocument();
     const mapFrame = screen.getByTitle(
       /Mapa interactivo de las 331 organizaciones receptoras de donaciones en CABA/i
     );
     expect(mapFrame.getAttribute("src")).toMatch(/mapa\.html$/);
 
-    // Jump to Slide 6 (ONG problem)
+    // Jump to Slide 6 (ONG problem — titles only, no card body paragraphs)
     fireEvent.click(screen.getByRole("button", { name: "Ir a diapositiva 6: El problema" }));
     expect(
       screen.getByRole("heading", { level: 1, name: /Pero tuvimos un problema/i })
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Las ONGs tenían otra necesidad si queríamos aumentar el flujo de donaciones/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText("Registro manual y caótico")).toBeInTheDocument();
+    expect(screen.queryByText(/Cuadernos, mensajes de WhatsApp/i)).not.toBeInTheDocument();
 
-    // Advance via large bottom arrow -> Slide 7 (Tool for orgs)
+    // Advance via large bottom arrow -> Slide 7 (Tool for orgs — titles only)
     fireEvent.click(nextBtn);
     expect(
       screen.getByRole("heading", {
@@ -196,7 +261,8 @@ describe("DEMO competition presentation", () => {
         name: /La herramienta que creamos si sos una organización/i,
       })
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Solución B2O/i)).not.toBeInTheDocument();
+    expect(screen.getByText("Foto + Gemini IA")).toBeInTheDocument();
+    expect(screen.queryByText(/Sacás una foto al producto/i)).not.toBeInTheDocument();
 
     // Advance -> Slide 8 (Live org panel + Modo Demo)
     fireEvent.click(nextBtn);
@@ -216,16 +282,17 @@ describe("DEMO competition presentation", () => {
       screen.getByRole("button", { name: /Modo Demo · Sedes Afiliadas/i })
     ).toBeInTheDocument();
 
-    // Advance -> Slide 9 (Modelo de negocio)
+    // Advance -> Slide 9 (Modelo de negocio — titles + US$ 3 badge only)
     fireEvent.click(nextBtn);
     expect(
       screen.getByRole("heading", { level: 1, name: /^Modelo de negocio$/i })
     ).toBeInTheDocument();
     expect(screen.getByText(/Más exposición para las marcas/i)).toBeInTheDocument();
-    expect(screen.getByText(/3 dólares por cada cliente/i)).toBeInTheDocument();
+    expect(screen.getByText(/Comisión por cliente efectivo/i)).toBeInTheDocument();
     expect(screen.getAllByText(/US\$\s*3/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/Les cobramos a las marcas/i)).not.toBeInTheDocument();
 
-    // Advance -> Slide 10 (Penultimate: Roadmap with 10k / 30k / 50k scenarios)
+    // Advance -> Slide 10 (Penultimate: Roadmap with 10k / 30k / 50k scenarios, no detail paragraphs)
     fireEvent.click(nextBtn);
     expect(screen.getByRole("heading", { level: 1, name: /^Roadmap$/i })).toBeInTheDocument();
     expect(screen.queryByText(/Próximos 12 meses/i)).not.toBeInTheDocument();
@@ -235,6 +302,7 @@ describe("DEMO competition presentation", () => {
     expect(screen.getByText(/US\$\s*30\.000/i)).toBeInTheDocument();
     expect(screen.getByText(/US\$\s*90\.000/i)).toBeInTheDocument();
     expect(screen.getByText(/US\$\s*150\.000/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Lanzamiento piloto en CABA/i)).not.toBeInTheDocument();
 
     // Advance -> Slide 11 (Final: Muchas gracias)
     fireEvent.click(nextBtn);
@@ -323,6 +391,10 @@ describe("DEMO competition presentation", () => {
     );
 
     // Slide 1
+    await expectNoSeriousA11yViolations(container);
+
+    // Slide 3 (ShatterType)
+    fireEvent.click(screen.getByRole("button", { name: "Ir a diapositiva 3: Nuestra misión" }));
     await expectNoSeriousA11yViolations(container);
 
     // Slide 4 (Triangle)
