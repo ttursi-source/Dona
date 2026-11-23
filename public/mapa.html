@@ -1,0 +1,2492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#090d16" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>doná — Mapa de organizaciones en CABA</title>
+
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Leaflet + MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+
+  <style>
+    :root {
+      --bg-black: #090d16;
+      --bg-surface: #111827;
+      --bg-surface-elevated: #1e293b;
+      --bg-glass: rgba(15, 23, 42, 0.94);
+      --celeste-primary: #38bdf8;
+      --celeste-strong: #0284c7;
+      --celeste-soft: rgba(56, 189, 248, 0.16);
+      --celeste-border: rgba(56, 189, 248, 0.34);
+      --pin-red: #ea4335;
+      --pin-red-glow: rgba(234, 67, 53, 0.55);
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --border-subtle: rgba(148, 163, 184, 0.2);
+      --shadow-gmaps: 0 2px 6px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.45);
+      --nav-height: 70px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: var(--bg-black);
+      font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text-primary);
+      overscroll-behavior: none;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background: #090d16;
+    }
+
+    body.dark-map-theme .google-roadmap-tiles {
+      filter: invert(92%) hue-rotate(188deg) saturate(135%) brightness(88%) contrast(108%);
+    }
+
+    .leaflet-control-attribution {
+      background: rgba(9, 13, 22, 0.84) !important;
+      color: var(--text-secondary) !important;
+      font-size: 10px !important;
+      backdrop-filter: blur(4px);
+      border-top-left-radius: 6px;
+      padding: 2px 8px !important;
+      margin-bottom: calc(var(--nav-height) + var(--safe-bottom)) !important;
+    }
+    .leaflet-control-attribution a {
+      color: var(--celeste-primary) !important;
+      text-decoration: none;
+    }
+
+    /* Barra superior y buscador */
+    .gmaps-top-container {
+      position: absolute;
+      top: calc(10px + var(--safe-top));
+      left: 10px;
+      right: 10px;
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .gmaps-top-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .search-anchor {
+      position: relative;
+      pointer-events: auto;
+      width: 100%;
+      max-width: 460px;
+    }
+
+    .gmaps-search-box {
+      display: flex;
+      align-items: center;
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--celeste-border);
+      border-radius: 28px;
+      height: 48px;
+      padding: 0 10px;
+      width: 100%;
+      box-shadow: var(--shadow-gmaps);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .gmaps-search-box:focus-within {
+      border-color: var(--celeste-primary);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25), var(--shadow-gmaps);
+    }
+
+    .dona-logo-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2.5px solid var(--celeste-primary);
+      background: var(--bg-black);
+      color: var(--text-primary);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      flex-shrink: 0;
+      margin-right: 9px;
+      text-decoration: none;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+      transition: transform 0.15s, background 0.15s;
+    }
+    .dona-logo-badge:hover {
+      background: #0f172a;
+      transform: scale(1.06);
+    }
+
+    .gmaps-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 400;
+      min-width: 0;
+    }
+
+    .gmaps-search-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .gmaps-icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .gmaps-icon-btn:hover,
+    .gmaps-icon-btn:active {
+      background: rgba(56, 189, 248, 0.14);
+      color: var(--celeste-primary);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .search-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--border-subtle);
+      margin: 0 2px;
+    }
+
+    .search-dropdown {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid var(--celeste-border);
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+      z-index: 40;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+
+    .search-result-item {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      padding: 10px 14px;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .search-result-item:last-child {
+      border-bottom: 0;
+    }
+    .search-result-item:hover {
+      background: rgba(56, 189, 248, 0.12);
+    }
+    .search-result-item strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .search-result-item small {
+      display: block;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .results-status-pill {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 36px;
+      padding: 0 13px;
+      border-radius: 999px;
+      background: var(--bg-glass);
+      border: 1px solid var(--celeste-border);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 600;
+      box-shadow: var(--shadow-gmaps);
+      white-space: nowrap;
+    }
+
+    .gmaps-chips-scroll {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 2px 2px 4px;
+    }
+    .gmaps-chips-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .gmaps-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 18px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      font-size: 12.5px;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      transition: all 0.16s ease;
+    }
+
+    .gmaps-chip .material-symbols-outlined {
+      font-size: 16px;
+      color: var(--celeste-primary);
+    }
+
+    .gmaps-chip.active {
+      background: var(--celeste-primary);
+      color: #090d16;
+      border-color: var(--celeste-primary);
+      font-weight: 700;
+    }
+
+    .gmaps-chip.active .material-symbols-outlined {
+      color: #090d16;
+    }
+
+    /* Pines y Clusters */
+    .gmaps-red-pin-wrapper {
+      background: transparent;
+      border: none;
+    }
+
+    .gmaps-pin {
+      position: relative;
+      width: 30px;
+      height: 40px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      transform-origin: bottom center;
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+      filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.65));
+      cursor: pointer;
+    }
+
+    .gmaps-pin:hover,
+    .gmaps-pin.selected {
+      transform: scale(1.25) translateY(-3px);
+      z-index: 999 !important;
+      filter: drop-shadow(0 0 14px var(--pin-red-glow));
+    }
+
+    .gmaps-pin svg {
+      width: 30px;
+      height: 40px;
+      display: block;
+    }
+
+    .gmaps-pin-icon {
+      position: absolute;
+      top: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #ffffff;
+      font-size: 14px !important;
+      line-height: 1;
+      font-weight: 700;
+    }
+
+    .gmaps-pin-badge-net {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 1px 4px;
+      border-radius: 999px;
+      background: #0f172a;
+      color: #38bdf8;
+      font-size: 8.5px;
+      font-weight: 800;
+    }
+
+    .dona-cluster-icon {
+      background: transparent;
+      border: 0;
+    }
+
+    .dona-cluster-bubble {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 12.5px;
+      color: #f8fafc;
+      background: rgba(15, 23, 42, 0.94);
+      border: 2.5px solid #38bdf8;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(56, 189, 248, 0.22);
+    }
+
+    .dona-cluster-bubble.medium {
+      border-color: #f59e0b;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(245, 158, 11, 0.22);
+    }
+
+    .dona-cluster-bubble.large {
+      border-color: #ea4335;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), 0 0 0 3px rgba(234, 67, 53, 0.25);
+    }
+
+    .user-location-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.3);
+    }
+
+    .leaflet-tooltip.gmaps-pin-tooltip {
+      background: rgba(9, 13, 22, 0.95);
+      color: #f8fafc;
+      border: 1px solid var(--celeste-border);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+    }
+    .leaflet-tooltip-top.gmaps-pin-tooltip::before {
+      border-top-color: var(--celeste-border);
+    }
+
+    /* Controles flotantes */
+    .gmaps-right-controls {
+      position: absolute;
+      right: 12px;
+      bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+      z-index: 18;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .gmaps-fab {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--bg-glass);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--celeste-border);
+      color: var(--celeste-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-gmaps);
+      transition: transform 0.15s, background 0.15s;
+    }
+
+    .gmaps-fab:active {
+      transform: scale(0.93);
+    }
+
+    .gmaps-zoom-stack {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-glass);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-gmaps);
+    }
+
+    .gmaps-zoom-btn {
+      width: 42px;
+      height: 40px;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .gmaps-zoom-btn:first-child {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .gmaps-layer-switcher {
+      position: absolute;
+      left: 12px;
+      bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px);
+      z-index: 18;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-glass);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid var(--celeste-border);
+      border-radius: 14px;
+      padding: 5px 11px 5px 5px;
+      cursor: pointer;
+      box-shadow: var(--shadow-gmaps);
+      color: var(--text-primary);
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    .layer-thumb {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #0284c7, #090d16);
+      border: 1px solid var(--celeste-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--celeste-primary);
+    }
+
+    /* Panel detalle de organización */
+    .gmaps-place-sheet {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(var(--nav-height) + var(--safe-bottom));
+      z-index: 30;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--celeste-border);
+      border-radius: 22px 22px 0 0;
+      padding: 10px 16px 16px;
+      box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.78);
+      transform: translateY(130%);
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+      max-height: 70dvh;
+      overflow-y: auto;
+    }
+
+    .gmaps-place-sheet.open {
+      transform: translateY(0);
+    }
+
+    .sheet-drag-handle {
+      width: 38px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(148, 163, 184, 0.35);
+      margin: 0 auto 10px;
+    }
+
+    .sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .sheet-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.25;
+    }
+
+    .sheet-subtitle {
+      font-size: 12.5px;
+      color: var(--celeste-primary);
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    .sheet-desc {
+      margin-top: 8px;
+      font-size: 12.5px;
+      line-height: 1.45;
+      color: var(--text-secondary);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .sheet-meta {
+      margin-top: 9px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .sheet-tag {
+      background: var(--celeste-soft);
+      color: var(--celeste-primary);
+      border: 1px solid var(--celeste-border);
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+
+    .sheet-tag-outline {
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      line-height: 1.35;
+      margin-top: 8px;
+    }
+
+    .sheet-contact-list {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      background: rgba(9, 13, 22, 0.65);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 9px 11px;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--text-primary);
+      text-decoration: none;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    .contact-row .material-symbols-outlined {
+      font-size: 17px;
+      color: var(--celeste-primary);
+      flex-shrink: 0;
+    }
+
+    .sheet-extra-sedes {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .sheet-extra-sedes-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--text-muted);
+    }
+    .extra-sede-btn {
+      width: 100%;
+      text-align: left;
+      background: rgba(9, 13, 22, 0.55);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 7px 10px;
+      color: var(--text-primary);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .extra-sede-btn:hover {
+      border-color: var(--celeste-primary);
+    }
+
+    .sheet-actions {
+      margin-top: 11px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .sheet-actions > a {
+      flex: 1 1 auto;
+    }
+
+    .sheet-donate-cta {
+      margin-top: 9px;
+      width: 100%;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px dashed var(--celeste-primary);
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--celeste-primary);
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+
+    .btn-primary-celeste {
+      height: 40px;
+      padding: 0 12px;
+      border-radius: 20px;
+      background: var(--celeste-primary);
+      color: #090d16;
+      border: none;
+      font-weight: 700;
+      font-size: 12.5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-secondary-dark {
+      height: 40px;
+      padding: 0 11px;
+      border-radius: 20px;
+      background: var(--bg-surface-elevated);
+      color: var(--celeste-primary);
+      border: 1px solid var(--celeste-border);
+      font-weight: 600;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    /* Drawers Cámara IA y Cupones */
+    .app-drawer-overlay {
+      position: fixed;
+      inset: 0;
+      bottom: calc(var(--nav-height) + var(--safe-bottom));
+      z-index: 32;
+      background: rgba(9, 13, 22, 0.86);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: none;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .app-drawer-overlay.active {
+      display: flex;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .app-drawer-card {
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      max-height: 100%;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--celeste-border);
+      border-radius: 24px 24px 0 0;
+      padding: 14px 16px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.8);
+    }
+
+    .drawer-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .drawer-title-group {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .drawer-title-group h2 {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .drawer-subtitle {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .camera-viewport {
+      position: relative;
+      width: 100%;
+      height: 230px;
+      border-radius: 18px;
+      background: #05080f;
+      border: 1.5px solid var(--celeste-border);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .camera-viewport video,
+    .camera-viewport img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .camera-viewport video.active,
+    .camera-viewport img.active {
+      display: block;
+    }
+
+    .camera-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 20px;
+    }
+
+    .camera-placeholder .material-symbols-outlined {
+      font-size: 44px;
+      color: var(--celeste-primary);
+    }
+
+    .scanner-frame {
+      position: absolute;
+      inset: 22px;
+      border: 2px dashed rgba(56, 189, 248, 0.55);
+      border-radius: 14px;
+      pointer-events: none;
+    }
+
+    .scanner-laser {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--celeste-primary), transparent);
+      box-shadow: 0 0 10px var(--celeste-primary);
+      animation: scanMove 2.4s infinite ease-in-out;
+    }
+
+    @keyframes scanMove {
+      0%, 100% { top: 8%; }
+      50% { top: 90%; }
+    }
+
+    .camera-controls-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .preset-pills-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--celeste-primary);
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .preset-btn {
+      background: rgba(9, 13, 22, 0.75);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 9px 10px;
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .preset-btn:hover,
+    .preset-btn:active {
+      border-color: var(--celeste-primary);
+      background: var(--celeste-soft);
+    }
+
+    .preset-btn .material-symbols-outlined {
+      color: var(--celeste-primary);
+      font-size: 19px;
+    }
+
+    .ai-result-box {
+      display: none;
+      background: rgba(2, 132, 199, 0.12);
+      border: 1px solid var(--celeste-primary);
+      border-radius: 16px;
+      padding: 12px 14px;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .ai-result-box.visible {
+      display: flex;
+    }
+
+    .ai-badge-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .ai-chip {
+      background: var(--celeste-primary);
+      color: #090d16;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Cupones */
+    .coupons-stats-banner {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.28), rgba(15, 23, 42, 0.9));
+      border: 1px solid var(--celeste-border);
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .coupons-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .coupon-card {
+      background: rgba(9, 13, 22, 0.78);
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--celeste-primary);
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .coupon-brand {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--celeste-primary);
+    }
+
+    .coupon-offer {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-top: 2px;
+    }
+
+    .coupon-desc {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .coupon-qr-btn {
+      background: var(--celeste-primary);
+      color: #090d16;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .qr-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(5, 8, 15, 0.9);
+      backdrop-filter: blur(14px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .qr-modal-backdrop.open {
+      display: flex;
+    }
+
+    .qr-modal-box {
+      width: 100%;
+      max-width: 340px;
+      background: var(--bg-surface);
+      border: 1.5px solid var(--celeste-primary);
+      border-radius: 24px;
+      padding: 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
+    }
+
+    .qr-image-frame {
+      background: #ffffff;
+      padding: 14px;
+      border-radius: 18px;
+      width: 210px;
+      height: 210px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-image-frame img {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .qr-code-pill {
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      background: rgba(56, 189, 248, 0.14);
+      color: var(--celeste-primary);
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--celeste-border);
+    }
+
+    /* Barra inferior */
+    .gmaps-bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(var(--nav-height) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: rgba(9, 13, 22, 0.97);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-top: 1px solid var(--celeste-border);
+      z-index: 40;
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 1fr;
+      align-items: center;
+      max-width: 100%;
+    }
+
+    .nav-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      height: 100%;
+      position: relative;
+      transition: color 0.15s;
+    }
+
+    .nav-tab .nav-pill {
+      padding: 3px 18px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.18s, transform 0.18s;
+    }
+
+    .nav-tab.active {
+      color: var(--celeste-primary);
+      font-weight: 700;
+    }
+
+    .nav-tab.active .nav-pill {
+      background: var(--celeste-soft);
+    }
+
+    .nav-tab-camera .camera-fab-pill {
+      width: 48px;
+      height: 36px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--celeste-primary), var(--celeste-strong));
+      color: #090d16;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.45);
+      transition: transform 0.15s;
+    }
+
+    .coupon-counter-badge {
+      position: absolute;
+      top: 8px;
+      right: calc(50% - 24px);
+      background: var(--pin-red);
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 800;
+      min-width: 17px;
+      height: 17px;
+      border-radius: 999px;
+      padding: 0 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid #090d16;
+    }
+
+    /* Desktop */
+    @media (min-width: 768px) {
+      .gmaps-top-container {
+        top: 16px;
+        left: 16px;
+        right: 16px;
+      }
+
+      .gmaps-chips-scroll {
+        flex-wrap: wrap;
+        overflow-x: visible;
+      }
+
+      .gmaps-place-sheet {
+        left: 16px;
+        right: auto;
+        top: 112px;
+        bottom: auto;
+        width: 420px;
+        max-height: calc(100dvh - 208px);
+        border-radius: 18px;
+        border: 1px solid var(--celeste-border);
+        transform: translateX(-125%);
+      }
+
+      .gmaps-place-sheet.open {
+        transform: translateX(0);
+      }
+
+      .sheet-drag-handle {
+        display: none;
+      }
+
+      .gmaps-bottom-nav {
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 16px;
+        width: 420px;
+        height: 66px;
+        border-radius: 34px;
+        border: 1px solid var(--celeste-border);
+        box-shadow: var(--shadow-gmaps);
+      }
+
+      .app-drawer-overlay {
+        bottom: 0;
+        align-items: center;
+        justify-content: center;
+        padding-bottom: 90px;
+      }
+
+      .app-drawer-card {
+        border-radius: 24px;
+        border: 1px solid var(--celeste-border);
+        max-height: 82dvh;
+      }
+    }
+  </style>
+</head>
+<body class="dark-map-theme">
+
+  <div id="map" aria-label="Mapa interactivo de organizaciones que reciben donaciones en CABA"></div>
+
+  <header class="gmaps-top-container">
+    <div class="gmaps-top-row">
+      <div class="search-anchor">
+        <div class="gmaps-search-box">
+          <a href="./" target="_top" class="dona-logo-badge" title="Volver al inicio de doná" aria-label="Volver al inicio de doná">doná</a>
+          <input
+            id="searchInput"
+            type="text"
+            class="gmaps-search-input"
+            placeholder="Buscar ONG, calle, barrio o qué donar..."
+            aria-label="Buscar organización, dirección, barrio o tipo de donación"
+            autocomplete="off"
+          />
+          <button class="gmaps-icon-btn hidden" id="clearTextBtn" type="button" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+          <button class="gmaps-icon-btn" id="geoBtn" type="button" title="Usar mi ubicación" aria-label="Usar mi ubicación">
+            <span class="material-symbols-outlined">my_location</span>
+          </button>
+          <div class="search-divider"></div>
+          <button class="gmaps-icon-btn" id="topScanBtn" type="button" title="Abrir Cámara IA" aria-label="Abrir Cámara IA" style="color: var(--celeste-primary);">
+            <span class="material-symbols-outlined">photo_camera</span>
+          </button>
+        </div>
+        <div id="searchResultsDropdown" class="search-dropdown hidden" role="listbox" aria-label="Resultados de búsqueda"></div>
+      </div>
+
+      <div class="results-status-pill" id="resultsStatusPill" role="status">
+        <span class="material-symbols-outlined" style="font-size:16px;color:var(--celeste-primary);">location_on</span>
+        <span id="resultsStatusText">Cargando organizaciones...</span>
+      </div>
+    </div>
+
+    <div class="gmaps-chips-scroll" id="filterChips">
+      <button class="gmaps-chip active" data-filter="all" id="allChipBtn" type="button">
+        <span class="material-symbols-outlined">location_on</span>
+        <span id="allChipLabel">Todas</span>
+      </button>
+      <button class="gmaps-chip" data-filter="Ropa" type="button">
+        <span class="material-symbols-outlined">checkroom</span>
+        <span>Ropa</span>
+      </button>
+      <button class="gmaps-chip" data-filter="Alimentos" type="button">
+        <span class="material-symbols-outlined">volunteer_activism</span>
+        <span>Alimentos</span>
+      </button>
+      <button class="gmaps-chip" data-filter="Muebles" type="button">
+        <span class="material-symbols-outlined">chair</span>
+        <span>Muebles y Hogar</span>
+      </button>
+      <button class="gmaps-chip" data-filter="Salud" type="button">
+        <span class="material-symbols-outlined">medical_services</span>
+        <span>Salud e Higiene</span>
+      </button>
+      <button class="gmaps-chip" data-filter="Tecnología" type="button">
+        <span class="material-symbols-outlined">devices</span>
+        <span>Tecnología</span>
+      </button>
+      <button class="gmaps-chip" data-filter="Útiles" type="button">
+        <span class="material-symbols-outlined">school</span>
+        <span>Útiles y Libros</span>
+      </button>
+      <button class="gmaps-chip" data-filter="Bebés" type="button">
+        <span class="material-symbols-outlined">child_care</span>
+        <span>Bebés</span>
+      </button>
+      <button class="gmaps-chip hidden" data-filter="Red" id="networkChipBtn" type="button">
+        <span class="material-symbols-outlined">hub</span>
+        <span id="networkChipLabel">Red doná</span>
+      </button>
+    </div>
+  </header>
+
+  <button class="gmaps-layer-switcher" id="toggleThemeBtn" type="button" title="Cambiar vista del mapa">
+    <div class="layer-thumb">
+      <span class="material-symbols-outlined">layers</span>
+    </div>
+    <div>
+      <div id="layerLabelTitle">Mapa Celeste / Negro</div>
+      <div id="layerLabelSub" style="font-size: 10px; color: var(--celeste-primary); font-weight: 400;">Google Maps Oficial</div>
+    </div>
+  </button>
+
+  <div class="gmaps-right-controls">
+    <button class="gmaps-fab" id="centerCabaBtn" type="button" title="Ver toda CABA" aria-label="Centrar mapa en CABA">
+      <span class="material-symbols-outlined">zoom_out_map</span>
+    </button>
+    <div class="gmaps-zoom-stack">
+      <button class="gmaps-zoom-btn" id="zoomInBtn" type="button" title="Acercar" aria-label="Acercar">
+        <span class="material-symbols-outlined">add</span>
+      </button>
+      <button class="gmaps-zoom-btn" id="zoomOutBtn" type="button" title="Alejar" aria-label="Alejar">
+        <span class="material-symbols-outlined">remove</span>
+      </button>
+    </div>
+  </div>
+
+  <aside class="gmaps-place-sheet" id="placeSheet" aria-label="Detalle de organización">
+    <div class="sheet-drag-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <h2 class="sheet-title" id="sheetTitle">Organización</h2>
+        <div class="sheet-subtitle" id="sheetNeighborhood">CABA</div>
+      </div>
+      <button class="gmaps-icon-btn" id="closeSheetBtn" type="button" aria-label="Cerrar ficha">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="sheet-meta" id="sheetCategoriesRow"></div>
+    <div class="sheet-tag-outline" id="sheetItems"></div>
+    <p class="sheet-desc hidden" id="sheetDesc"></p>
+
+    <div class="sheet-contact-list" id="sheetContactList">
+      <a id="sheetAddressLink" href="#" target="_blank" rel="noopener noreferrer" class="contact-row">
+        <span class="material-symbols-outlined">location_on</span>
+        <span id="sheetAddressText">CABA</span>
+      </a>
+      <div id="sheetHoursRow" class="contact-row hidden">
+        <span class="material-symbols-outlined">schedule</span>
+        <span id="sheetHoursText"></span>
+      </div>
+      <a id="sheetPhoneLink" href="#" class="contact-row hidden">
+        <span class="material-symbols-outlined">call</span>
+        <span id="sheetPhoneText"></span>
+      </a>
+      <a id="sheetEmailLink" href="#" class="contact-row hidden">
+        <span class="material-symbols-outlined">mail</span>
+        <span id="sheetEmailText"></span>
+      </a>
+      <a id="sheetWebLink" href="#" target="_blank" rel="noopener noreferrer" class="contact-row hidden">
+        <span class="material-symbols-outlined">language</span>
+        <span id="sheetWebText">Sitio web / Redes</span>
+      </a>
+      <a id="sheetSourceLink" href="#" target="_blank" rel="noopener noreferrer" class="contact-row hidden">
+        <span class="material-symbols-outlined">open_in_new</span>
+        <span>Ver ficha en Quiero Ayudar</span>
+      </a>
+    </div>
+
+    <div id="sheetExtraSedes" class="sheet-extra-sedes hidden"></div>
+
+    <div class="sheet-actions" id="sheetActionsRow">
+      <a id="openGmapsLink" href="#" target="_blank" rel="noopener noreferrer" class="btn-primary-celeste">
+        <span class="material-symbols-outlined" style="font-size:17px;">directions</span>
+        <span>Google Maps</span>
+      </a>
+      <a id="callActionBtn" href="#" class="btn-secondary-dark hidden">
+        <span class="material-symbols-outlined" style="font-size:17px;">call</span>
+        <span>Llamar</span>
+      </a>
+      <a id="emailActionBtn" href="#" class="btn-secondary-dark hidden">
+        <span class="material-symbols-outlined" style="font-size:17px;">mail</span>
+        <span>Mail</span>
+      </a>
+      <a id="webActionBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-secondary-dark hidden">
+        <span class="material-symbols-outlined" style="font-size:17px;">language</span>
+        <span>Web</span>
+      </a>
+    </div>
+
+    <button class="sheet-donate-cta" id="claimCouponFromOngBtn" type="button">
+      <span class="material-symbols-outlined" style="font-size:18px;">qr_code_2</span>
+      <span>Registrar donación aquí y obtener Cupón QR</span>
+    </button>
+  </aside>
+
+  <!-- Drawer Cámara IA -->
+  <section class="app-drawer-overlay" id="cameraDrawer" aria-label="Escáner inteligente Gemini">
+    <div class="app-drawer-card">
+      <div class="drawer-top-bar">
+        <div class="drawer-title-group">
+          <span class="material-symbols-outlined" style="color:var(--celeste-primary);font-size:26px;">auto_awesome</span>
+          <h2>Escáner IA doná</h2>
+        </div>
+        <button class="gmaps-icon-btn" id="closeCameraDrawerBtn" type="button" aria-label="Cerrar cámara">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <p class="drawer-subtitle">
+        Sacale una foto a tu ropa, alimentos, muebles, útiles o insumos. La IA identifica qué es y filtra las organizaciones en CABA que hoy lo reciben.
+      </p>
+
+      <div class="camera-viewport">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <img id="cameraPreviewImg" alt="Vista previa de donación" />
+        <div class="camera-placeholder" id="cameraPlaceholder">
+          <span class="material-symbols-outlined">photo_camera</span>
+          <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Cámara lista para escanear</div>
+          <div style="font-size:11.5px;">Usá tu cámara en vivo o elegí una foto</div>
+        </div>
+        <div class="scanner-frame">
+          <div class="scanner-laser"></div>
+        </div>
+      </div>
+
+      <div class="camera-controls-row">
+        <button class="btn-primary-celeste" id="startLiveCameraBtn" type="button" style="height:44px;">
+          <span class="material-symbols-outlined" style="font-size:18px;">videocam</span>
+          <span id="liveCamBtnText">Activar Cámara</span>
+        </button>
+        <button class="btn-secondary-dark" id="uploadPhotoBtn" type="button" style="height:44px;">
+          <span class="material-symbols-outlined" style="font-size:18px;">add_photo_alternate</span>
+          <span>Subir Foto</span>
+        </button>
+        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;" />
+      </div>
+
+      <div class="preset-pills-title">O elegí rápido qué querés donar:</div>
+      <div class="preset-grid">
+        <button class="preset-btn" type="button" data-preset="Ropa" data-item="Campera / Ropa de abrigo">
+          <span class="material-symbols-outlined">checkroom</span>
+          <span>Ropa / Abrigo</span>
+        </button>
+        <button class="preset-btn" type="button" data-preset="Alimentos" data-item="Alimentos no perecederos">
+          <span class="material-symbols-outlined">inventory_2</span>
+          <span>Alimentos</span>
+        </button>
+        <button class="preset-btn" type="button" data-preset="Muebles" data-item="Muebles y artículos del hogar">
+          <span class="material-symbols-outlined">chair</span>
+          <span>Muebles y Hogar</span>
+        </button>
+        <button class="preset-btn" type="button" data-preset="Salud" data-item="Medicamentos e higiene">
+          <span class="material-symbols-outlined">medical_services</span>
+          <span>Salud e Higiene</span>
+        </button>
+      </div>
+
+      <div class="ai-result-box" id="aiResultBox">
+        <div class="ai-badge-row">
+          <span class="ai-chip">
+            <span class="material-symbols-outlined" style="font-size:14px;">psychology</span>
+            Gemini Visión IA
+          </span>
+          <span style="font-size:11px;color:var(--celeste-primary);font-weight:700;" id="aiMatchCountBadge">Analizado</span>
+        </div>
+        <div style="font-size:14.5px;font-weight:800;color:var(--text-primary);" id="aiDetectedTitle">Detectado</div>
+        <div style="font-size:12px;color:var(--text-secondary);line-height:1.4;" id="aiDetectedDesc"></div>
+        <button class="btn-primary-celeste" id="applyAiFilterBtn" type="button" style="width:100%;height:42px;">
+          <span class="material-symbols-outlined" style="font-size:18px;">map</span>
+          <span>Ver organizaciones que lo reciben en el mapa</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Drawer Mis Cupones -->
+  <section class="app-drawer-overlay" id="couponsDrawer" aria-label="Billetera de cupones doná">
+    <div class="app-drawer-card">
+      <div class="drawer-top-bar">
+        <div class="drawer-title-group">
+          <span class="material-symbols-outlined" style="color:var(--celeste-primary);font-size:26px;">local_activity</span>
+          <h2>Mis Cupones</h2>
+        </div>
+        <button class="gmaps-icon-btn" id="closeCouponsDrawerBtn" type="button" aria-label="Cerrar cupones">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="coupons-stats-banner">
+        <div>
+          <div style="font-size:11px;color:var(--celeste-primary);font-weight:800;text-transform:uppercase;">Economía Circular</div>
+          <div style="font-size:15px;font-weight:800;margin-top:2px;">Beneficios por tus donaciones</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:22px;font-weight:800;color:var(--celeste-primary);" id="totalCouponsCount">4</div>
+          <div style="font-size:10px;color:var(--text-secondary);">Cupones activos</div>
+        </div>
+      </div>
+
+      <div class="coupons-list" id="couponsListContainer"></div>
+    </div>
+  </section>
+
+  <div class="qr-modal-backdrop" id="qrModalBackdrop">
+    <div class="qr-modal-box">
+      <div style="font-size:11px;color:var(--celeste-primary);font-weight:800;text-transform:uppercase;" id="qrModalBrand">LEVI'S ARGENTINA</div>
+      <div style="font-size:18px;font-weight:800;" id="qrModalOffer">25% OFF en Jeans</div>
+      <div class="qr-image-frame">
+        <img id="qrModalImg" alt="Código QR de beneficio" />
+      </div>
+      <div class="qr-code-pill" id="qrModalCode">DONA-LEVIS-2026</div>
+      <p style="font-size:11.5px;color:var(--text-secondary);line-height:1.35;">
+        Presentá este código QR en cualquier sucursal adherida de CABA o ingresalo en el checkout online.
+      </p>
+      <button class="btn-primary-celeste" id="closeQrModalBtn" type="button" style="width:100%;">
+        Listo
+      </button>
+    </div>
+  </div>
+
+  <nav class="gmaps-bottom-nav" aria-label="Navegación principal de doná">
+    <button class="nav-tab active" id="navExploreBtn" type="button">
+      <div class="nav-pill">
+        <span class="material-symbols-outlined">map</span>
+      </div>
+      <span>Mapa CABA</span>
+    </button>
+
+    <button class="nav-tab nav-tab-camera" id="navCameraBtn" type="button">
+      <div class="camera-fab-pill">
+        <span class="material-symbols-outlined" style="font-size:22px;">photo_camera</span>
+      </div>
+      <span style="color:var(--celeste-primary);font-weight:700;">Cámara IA</span>
+    </button>
+
+    <button class="nav-tab" id="navCouponsBtn" type="button">
+      <span class="coupon-counter-badge" id="navCouponBadge">4</span>
+      <div class="nav-pill">
+        <span class="material-symbols-outlined">local_activity</span>
+      </div>
+      <span>Mis Cupones</span>
+    </button>
+  </nav>
+
+  <script>
+    (function () {
+      function escapeHtml(val) {
+        return String(val == null ? '' : val)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function safeHttpUrl(raw) {
+        var s = String(raw || '').trim();
+        if (!s) return '';
+        try {
+          var u = new URL(s, window.location.origin);
+          return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : '';
+        } catch (_e) {
+          return '';
+        }
+      }
+
+      function showMapNotice(text) {
+        var existing = document.getElementById('donaNetworkNotice');
+        if (existing) existing.remove();
+        var el = document.createElement('div');
+        el.id = 'donaNetworkNotice';
+        el.setAttribute('role', 'status');
+        el.style.cssText =
+          'position:fixed;bottom:88px;left:50%;transform:translateX(-50%);z-index:1200;' +
+          'background:#0f172a;color:#f8fafc;border:1px solid rgba(56,189,248,0.45);' +
+          'padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;' +
+          'box-shadow:0 8px 24px rgba(0,0,0,0.35);max-width:calc(100vw - 32px);text-align:center;';
+        el.textContent = text;
+        document.body.appendChild(el);
+        setTimeout(function () {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, 5500);
+      }
+
+      var CATEGORY_ICON = {
+        'Ropa': 'checkroom',
+        'Alimentos': 'volunteer_activism',
+        'Muebles': 'chair',
+        'Salud': 'medical_services',
+        'Tecnología': 'devices',
+        'Útiles': 'school',
+        'Bebés': 'child_care',
+        'Otros': 'inventory_2',
+        'Red': 'hub'
+      };
+
+      var DONATION_POINTS = [];
+      var currentFilter = 'all';
+      var selectedPoint = null;
+      var userLocationLayer = null;
+      var mediaStream = null;
+      var detectedCategory = 'all';
+
+      var CABA_CENTER = [-34.6118, -58.4370];
+      var INITIAL_ZOOM = window.innerWidth < 768 ? 12 : 13;
+
+      var map = L.map('map', {
+        center: CABA_CENTER,
+        zoom: INITIAL_ZOOM,
+        zoomControl: false,
+        attributionControl: true
+      });
+
+      var googleRoadmap = L.tileLayer(
+        'https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=es&gl=AR&apistyle=s.t:2|p.v:off',
+        {
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          className: 'google-roadmap-tiles',
+          attribution: 'Datos del mapa &copy;2026 Google — doná CABA'
+        }
+      ).addTo(map);
+
+      var googleSatellite = L.tileLayer(
+        'https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}&hl=es&gl=AR',
+        {
+          maxZoom: 20,
+          subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+          attribution: 'Imágenes &copy;2026 Google — doná CABA'
+        }
+      );
+
+      var osmFallback = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        className: 'google-roadmap-tiles',
+        attribution: '&copy; OpenStreetMap contributors — doná CABA'
+      });
+
+      var googleTileErrors = 0;
+      googleRoadmap.on('tileerror', function () {
+        googleTileErrors += 1;
+        if (googleTileErrors === 8 && map.hasLayer(googleRoadmap)) {
+          map.removeLayer(googleRoadmap);
+          osmFallback.addTo(map);
+          document.getElementById('layerLabelSub').textContent = 'OpenStreetMap';
+        }
+      });
+
+      var markersLayer;
+      if (typeof L.markerClusterGroup === 'function') {
+        markersLayer = L.markerClusterGroup({
+          maxClusterRadius: 46,
+          showCoverageOnHover: false,
+          spiderfyOnMaxZoom: true,
+          chunkedLoading: true,
+          iconCreateFunction: function (cluster) {
+            var count = cluster.getChildCount();
+            var cls = count >= 50 ? 'large' : count >= 15 ? 'medium' : '';
+            var size = count >= 100 ? 44 : count >= 20 ? 38 : 34;
+            return L.divIcon({
+              html: '<div class="dona-cluster-bubble ' + cls + '">' + count + '</div>',
+              className: 'dona-cluster-icon',
+              iconSize: L.point(size, size)
+            });
+          }
+        }).addTo(map);
+      } else {
+        markersLayer = L.layerGroup().addTo(map);
+      }
+
+      function createPinIcon(point, isSelected) {
+        var isNet = Boolean(point.isNetworkSede);
+        var fillColor = isNet ? '#0284c7' : '#EA4335';
+        var innerDot = isNet
+          ? '<circle cx="13.5" cy="13.5" r="6" fill="#0f172a" />'
+          : '<circle cx="13.5" cy="13.2" r="4.8" fill="#8c1d15" />';
+        var badgeHtml = isNet
+          ? '<span class="gmaps-pin-badge-net">Red</span>'
+          : '';
+
+        return L.divIcon({
+          className: 'gmaps-red-pin-wrapper',
+          iconSize: [30, 40],
+          iconAnchor: [15, 40],
+          html:
+            '<div class="gmaps-pin ' + (isSelected ? 'selected' : '') + '">' +
+            '<svg viewBox="0 0 27 38" xmlns="http://www.w3.org/2000/svg">' +
+            '<path d="M13.5 0C6.044 0 0 6.044 0 13.5C0 23.625 13.5 38 13.5 38C13.5 38 27 23.625 27 13.5C27 6.044 20.956 0 13.5 0Z" fill="' +
+            fillColor +
+            '" stroke="#ffffff" stroke-width="1.4"/>' +
+            innerDot +
+            '</svg>' +
+            badgeHtml +
+            '</div>'
+        });
+      }
+
+      function buildGoogleMapsUrl(point, customAddress, latOverride, lngOverride) {
+        var lat = typeof latOverride === 'number' ? latOverride : point.lat;
+        var lng = typeof lngOverride === 'number' ? lngOverride : point.lng;
+        if (typeof lat === 'number' && typeof lng === 'number' && !point.approx) {
+          return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(lat + ',' + lng);
+        }
+        return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((point.name || '') + ', ' + (customAddress || point.address || 'CABA'));
+      }
+
+      function matchesFilterAndSearch(point, filterCategory, queryLower) {
+        var cats = Array.isArray(point.categories) ? point.categories : [point.category];
+        var matchesCat =
+          filterCategory === 'all' ||
+          (filterCategory === 'Red' ? Boolean(point.isNetworkSede) : cats.indexOf(filterCategory) !== -1);
+
+        if (!matchesCat) return false;
+        if (!queryLower) return true;
+
+        var haystack = [
+          point.name,
+          point.orgName,
+          point.zone,
+          point.address,
+          point.items,
+          point.description,
+          cats.join(' ')
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        return haystack.indexOf(queryLower) !== -1;
+      }
+
+      function updateCounters(visibleCount) {
+        var totalBase = DONATION_POINTS.filter(function (p) { return !p.isNetworkSede; }).length;
+        var totalNet = DONATION_POINTS.filter(function (p) { return p.isNetworkSede; }).length;
+        var allChipLabel = document.getElementById('allChipLabel');
+        if (allChipLabel) {
+          allChipLabel.textContent = totalNet > 0 ? 'Todas (' + totalBase + ' + ' + totalNet + ' red)' : 'Todas (' + totalBase + ')';
+        }
+        var netBtn = document.getElementById('networkChipBtn');
+        var netLabel = document.getElementById('networkChipLabel');
+        if (netBtn && netLabel) {
+          netBtn.classList.toggle('hidden', totalNet === 0);
+          netLabel.textContent = 'Red doná (' + totalNet + ')';
+        }
+        var statusText = document.getElementById('resultsStatusText');
+        if (statusText) {
+          statusText.textContent = visibleCount + (visibleCount === 1 ? ' organización visible' : ' organizaciones visibles');
+        }
+      }
+
+      function renderMarkers(filterCategory, searchQuery) {
+        if (filterCategory === undefined) filterCategory = currentFilter;
+        if (searchQuery === undefined) searchQuery = document.getElementById('searchInput').value;
+        var q = String(searchQuery || '').trim().toLowerCase();
+
+        markersLayer.clearLayers();
+        var visible = 0;
+
+        DONATION_POINTS.forEach(function (point) {
+          if (!matchesFilterAndSearch(point, filterCategory, q)) return;
+          visible += 1;
+          var isSel = selectedPoint && selectedPoint.id === point.id;
+          var marker = L.marker([point.lat, point.lng], {
+            icon: createPinIcon(point, isSel)
+          });
+
+          var tipTitle = point.isNetworkSede
+            ? '[Red] ' + point.name + ' · ' + (point.zone || '')
+            : point.name + ' · ' + (point.zone || 'CABA');
+
+          marker.bindTooltip(escapeHtml(tipTitle), {
+            direction: 'top',
+            offset: [0, -36],
+            className: 'gmaps-pin-tooltip'
+          });
+
+          marker.on('click', function () {
+            openPlaceSheet(point);
+          });
+
+          markersLayer.addLayer(marker);
+        });
+
+        updateCounters(visible);
+      }
+
+      // Buscador instantáneo y dropdown
+      var searchInput = document.getElementById('searchInput');
+      var clearTextBtn = document.getElementById('clearTextBtn');
+      var searchDropdown = document.getElementById('searchResultsDropdown');
+
+      function renderSearchDropdown(queryText) {
+        var q = String(queryText || '').trim().toLowerCase();
+        if (q.length < 2) {
+          searchDropdown.classList.add('hidden');
+          searchDropdown.innerHTML = '';
+          return;
+        }
+        var matches = [];
+        for (var i = 0; i < DONATION_POINTS.length && matches.length < 8; i++) {
+          if (matchesFilterAndSearch(DONATION_POINTS[i], currentFilter, q)) {
+            matches.push(DONATION_POINTS[i]);
+          }
+        }
+        if (matches.length === 0) {
+          searchDropdown.innerHTML =
+            '<div class="search-result-item" style="cursor:default;"><div><strong>Sin coincidencias en el filtro actual</strong><small>Probá con "Todas" o buscá otro barrio o categoría.</small></div></div>';
+          searchDropdown.classList.remove('hidden');
+          return;
+        }
+
+        searchDropdown.innerHTML = matches
+          .map(function (pt, idx) {
+            return (
+              '<button type="button" class="search-result-item" data-match-idx="' + idx + '">' +
+              '<span class="material-symbols-outlined" style="font-size:18px;color:' +
+              (pt.isNetworkSede ? '#38bdf8' : '#ea4335') +
+              ';margin-top:2px;">location_on</span>' +
+              '<div><strong>' + escapeHtml(pt.name) + '</strong>' +
+              '<small>' + escapeHtml(pt.zone) + ' · ' + escapeHtml((pt.categories || []).slice(0, 3).join(', ')) + '</small></div>' +
+              '</button>'
+            );
+          })
+          .join('');
+        searchDropdown.classList.remove('hidden');
+
+        searchDropdown.querySelectorAll('[data-match-idx]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var picked = matches[Number(btn.getAttribute('data-match-idx'))];
+            if (picked) {
+              searchDropdown.classList.add('hidden');
+              openPlaceSheet(picked);
+            }
+          });
+        });
+      }
+
+      searchInput.addEventListener('input', function (e) {
+        var val = e.target.value;
+        clearTextBtn.classList.toggle('hidden', !val.trim());
+        renderMarkers(currentFilter, val);
+        renderSearchDropdown(val);
+      });
+
+      clearTextBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        clearTextBtn.classList.add('hidden');
+        searchDropdown.classList.add('hidden');
+        renderMarkers(currentFilter, '');
+        searchInput.focus();
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!searchDropdown.classList.contains('hidden') && !e.target.closest('.search-anchor')) {
+          searchDropdown.classList.add('hidden');
+        }
+      });
+
+      // Chips de filtro
+      function setActiveChip(category) {
+        currentFilter = category;
+        document.querySelectorAll('.gmaps-chip').forEach(function (c) {
+          c.classList.toggle('active', c.getAttribute('data-filter') === category);
+        });
+      }
+
+      document.querySelectorAll('.gmaps-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          var cat = chip.getAttribute('data-filter') || 'all';
+          setActiveChip(cat);
+          renderMarkers(cat, searchInput.value);
+          renderSearchDropdown(searchInput.value);
+        });
+      });
+
+      // Ficha de detalle de organización
+      var placeSheet = document.getElementById('placeSheet');
+      var sheetTitle = document.getElementById('sheetTitle');
+      var sheetNeighborhood = document.getElementById('sheetNeighborhood');
+      var sheetCategoriesRow = document.getElementById('sheetCategoriesRow');
+      var sheetItems = document.getElementById('sheetItems');
+      var sheetDesc = document.getElementById('sheetDesc');
+      var sheetAddressText = document.getElementById('sheetAddressText');
+      var sheetAddressLink = document.getElementById('sheetAddressLink');
+      var sheetHoursRow = document.getElementById('sheetHoursRow');
+      var sheetHoursText = document.getElementById('sheetHoursText');
+      var sheetPhoneLink = document.getElementById('sheetPhoneLink');
+      var sheetPhoneText = document.getElementById('sheetPhoneText');
+      var sheetEmailLink = document.getElementById('sheetEmailLink');
+      var sheetEmailText = document.getElementById('sheetEmailText');
+      var sheetWebLink = document.getElementById('sheetWebLink');
+      var sheetWebText = document.getElementById('sheetWebText');
+      var sheetSourceLink = document.getElementById('sheetSourceLink');
+      var sheetExtraSedes = document.getElementById('sheetExtraSedes');
+      var openGmapsLink = document.getElementById('openGmapsLink');
+      var callActionBtn = document.getElementById('callActionBtn');
+      var emailActionBtn = document.getElementById('emailActionBtn');
+      var webActionBtn = document.getElementById('webActionBtn');
+
+      function openPlaceSheet(point) {
+        closeAllDrawers();
+        selectedPoint = point;
+
+        var gmapsUrl = buildGoogleMapsUrl(point);
+        var rawPhone = String(point.phone || '').trim();
+        var cleanTel = rawPhone.replace(/[^+\d]/g, '');
+        var hasValidTel = cleanTel.length >= 6;
+
+        var rawEmail = String(point.email || '').trim();
+        var hasValidEmail = rawEmail.indexOf('@') !== -1 && rawEmail.indexOf('dona.invalid') === -1;
+        var cleanWeb = safeHttpUrl(point.website);
+        var cleanSource = safeHttpUrl(point.sourceUrl);
+
+        sheetTitle.textContent = point.name || 'Organización';
+        sheetNeighborhood.textContent = point.isNetworkSede
+          ? 'Red ' + (point.orgName || 'solidaria') + ' • ' + (point.zone || 'Red doná')
+          : (point.zone || 'CABA') + ' • Ciudad de Buenos Aires';
+
+        var cats = Array.isArray(point.categories) ? point.categories : [point.category || 'Otros'];
+        sheetCategoriesRow.innerHTML = cats
+          .map(function (c) { return '<span class="sheet-tag">' + escapeHtml(c) + '</span>'; })
+          .join('');
+
+        sheetItems.textContent = 'Recibe: ' + (point.items || 'Donaciones materiales');
+
+        if (point.description) {
+          sheetDesc.textContent = point.description;
+          sheetDesc.classList.remove('hidden');
+        } else {
+          sheetDesc.textContent = '';
+          sheetDesc.classList.add('hidden');
+        }
+
+        sheetAddressText.textContent = (point.address || 'CABA') + (point.approx ? ' (zona aproximada)' : '');
+        sheetAddressLink.href = gmapsUrl;
+        openGmapsLink.href = gmapsUrl;
+
+        if (point.hours) {
+          sheetHoursText.textContent = point.hours;
+          sheetHoursRow.classList.remove('hidden');
+        } else {
+          sheetHoursRow.classList.add('hidden');
+        }
+
+        if (hasValidTel) {
+          sheetPhoneText.textContent = rawPhone;
+          sheetPhoneLink.href = 'tel:' + cleanTel;
+          callActionBtn.href = 'tel:' + cleanTel;
+          sheetPhoneLink.classList.remove('hidden');
+          callActionBtn.classList.remove('hidden');
+        } else {
+          sheetPhoneLink.classList.add('hidden');
+          callActionBtn.classList.add('hidden');
+        }
+
+        if (hasValidEmail) {
+          sheetEmailText.textContent = rawEmail;
+          var mailHref = 'mailto:' + rawEmail + '?subject=' + encodeURIComponent('Consulta de donación desde doná');
+          sheetEmailLink.href = mailHref;
+          emailActionBtn.href = mailHref;
+          sheetEmailLink.classList.remove('hidden');
+          emailActionBtn.classList.remove('hidden');
+        } else {
+          sheetEmailLink.classList.add('hidden');
+          emailActionBtn.classList.add('hidden');
+        }
+
+        if (cleanWeb) {
+          var hostLabel = cleanWeb.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+          sheetWebText.textContent = hostLabel || 'Sitio web / Redes';
+          sheetWebLink.href = cleanWeb;
+          webActionBtn.href = cleanWeb;
+          sheetWebLink.classList.remove('hidden');
+          webActionBtn.classList.remove('hidden');
+        } else {
+          sheetWebLink.classList.add('hidden');
+          webActionBtn.classList.add('hidden');
+        }
+
+        if (cleanSource) {
+          sheetSourceLink.href = cleanSource;
+          sheetSourceLink.classList.remove('hidden');
+        } else {
+          sheetSourceLink.classList.add('hidden');
+        }
+
+        if (Array.isArray(point.extraSedes) && point.extraSedes.length > 0) {
+          sheetExtraSedes.innerHTML =
+            '<div class="sheet-extra-sedes-title">Otras sedes en CABA (' + point.extraSedes.length + '):</div>' +
+            point.extraSedes
+              .slice(0, 6)
+              .map(function (s, idx) {
+                return (
+                  '<button type="button" class="extra-sede-btn" data-extra-idx="' + idx + '">' +
+                  '<strong>' + escapeHtml(s.address) + '</strong> · ' + escapeHtml(s.zone || 'CABA') +
+                  (s.hours ? '<br><span style="color:var(--text-muted);font-size:11px;">' + escapeHtml(s.hours) + '</span>' : '') +
+                  '</button>'
+                );
+              })
+              .join('');
+          sheetExtraSedes.classList.remove('hidden');
+          sheetExtraSedes.querySelectorAll('[data-extra-idx]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var extra = point.extraSedes[Number(btn.getAttribute('data-extra-idx'))];
+              if (extra) {
+                sheetAddressText.textContent = extra.address + ', ' + (extra.zone || 'CABA');
+                var u = buildGoogleMapsUrl(point, extra.address, extra.lat, extra.lng);
+                sheetAddressLink.href = u;
+                openGmapsLink.href = u;
+                map.flyTo([extra.lat, extra.lng], 16, { duration: 0.45 });
+              }
+            });
+          });
+        } else {
+          sheetExtraSedes.innerHTML = '';
+          sheetExtraSedes.classList.add('hidden');
+        }
+
+        placeSheet.classList.add('open');
+        map.flyTo([point.lat, point.lng], Math.max(map.getZoom(), 15), { duration: 0.45 });
+      }
+
+      document.getElementById('closeSheetBtn').addEventListener('click', function () {
+        placeSheet.classList.remove('open');
+        selectedPoint = null;
+      });
+
+      // Controles del mapa y geolocalización real
+      document.getElementById('zoomInBtn').addEventListener('click', function () { map.zoomIn(); });
+      document.getElementById('zoomOutBtn').addEventListener('click', function () { map.zoomOut(); });
+
+      document.getElementById('centerCabaBtn').addEventListener('click', function () {
+        placeSheet.classList.remove('open');
+        map.flyTo(CABA_CENTER, INITIAL_ZOOM, { duration: 0.6 });
+      });
+
+      document.getElementById('geoBtn').addEventListener('click', function () {
+        if (!navigator.geolocation) {
+          showMapNotice('Tu navegador no admite geolocalización; centrando en CABA.');
+          map.flyTo(CABA_CENTER, INITIAL_ZOOM, { duration: 0.5 });
+          return;
+        }
+        showMapNotice('Buscando tu ubicación...');
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            var coords = [pos.coords.latitude, pos.coords.longitude];
+            if (userLocationLayer) map.removeLayer(userLocationLayer);
+            userLocationLayer = L.marker(coords, {
+              icon: L.divIcon({
+                className: 'dona-user-loc',
+                html: '<div class="user-location-dot"></div>',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+              })
+            }).addTo(map);
+            map.flyTo(coords, 15, { duration: 0.6 });
+            showMapNotice('Mostrando organizaciones cerca de tu ubicación.');
+          },
+          function () {
+            showMapNotice('No pudimos acceder a tu ubicación; centrando en CABA.');
+            map.flyTo(CABA_CENTER, INITIAL_ZOOM, { duration: 0.5 });
+          },
+          { enableHighAccuracy: false, timeout: 6000 }
+        );
+      });
+
+      // Selector de capas
+      var mapMode = 0;
+      var layerLabelTitle = document.getElementById('layerLabelTitle');
+      var layerLabelSub = document.getElementById('layerLabelSub');
+      document.getElementById('toggleThemeBtn').addEventListener('click', function () {
+        mapMode = (mapMode + 1) % 3;
+        if (mapMode === 0) {
+          if (map.hasLayer(googleSatellite)) map.removeLayer(googleSatellite);
+          if (!map.hasLayer(googleRoadmap) && !map.hasLayer(osmFallback)) googleRoadmap.addTo(map);
+          document.body.classList.add('dark-map-theme');
+          layerLabelTitle.textContent = 'Mapa Celeste / Negro';
+          layerLabelSub.textContent = map.hasLayer(osmFallback) ? 'OpenStreetMap' : 'Google Maps Oficial';
+        } else if (mapMode === 1) {
+          if (map.hasLayer(googleSatellite)) map.removeLayer(googleSatellite);
+          if (!map.hasLayer(googleRoadmap) && !map.hasLayer(osmFallback)) googleRoadmap.addTo(map);
+          document.body.classList.remove('dark-map-theme');
+          layerLabelTitle.textContent = 'Mapa Clásico';
+          layerLabelSub.textContent = map.hasLayer(osmFallback) ? 'OpenStreetMap' : 'Google Maps Oficial';
+        } else {
+          if (map.hasLayer(googleRoadmap)) map.removeLayer(googleRoadmap);
+          if (map.hasLayer(osmFallback)) map.removeLayer(osmFallback);
+          if (!map.hasLayer(googleSatellite)) googleSatellite.addTo(map);
+          document.body.classList.remove('dark-map-theme');
+          layerLabelTitle.textContent = 'Vista Satélite';
+          layerLabelSub.textContent = 'Google Satélite';
+        }
+      });
+
+      // Navegación inferior y Drawers
+      var cameraDrawer = document.getElementById('cameraDrawer');
+      var couponsDrawer = document.getElementById('couponsDrawer');
+      var navExploreBtn = document.getElementById('navExploreBtn');
+      var navCameraBtn = document.getElementById('navCameraBtn');
+      var navCouponsBtn = document.getElementById('navCouponsBtn');
+
+      function stopLiveCamera() {
+        if (mediaStream) {
+          mediaStream.getTracks().forEach(function (track) { track.stop(); });
+          mediaStream = null;
+        }
+        document.getElementById('cameraVideo').classList.remove('active');
+        document.getElementById('liveCamBtnText').textContent = 'Activar Cámara';
+      }
+
+      function closeAllDrawers() {
+        cameraDrawer.classList.remove('active');
+        couponsDrawer.classList.remove('active');
+        stopLiveCamera();
+      }
+
+      function setBottomNavActive(tabEl) {
+        [navExploreBtn, navCameraBtn, navCouponsBtn].forEach(function (btn) { btn.classList.remove('active'); });
+        tabEl.classList.add('active');
+      }
+
+      navExploreBtn.addEventListener('click', function () {
+        closeAllDrawers();
+        setBottomNavActive(navExploreBtn);
+      });
+
+      function openCameraDrawer() {
+        placeSheet.classList.remove('open');
+        couponsDrawer.classList.remove('active');
+        cameraDrawer.classList.add('active');
+        setBottomNavActive(navCameraBtn);
+      }
+
+      navCameraBtn.addEventListener('click', openCameraDrawer);
+      document.getElementById('topScanBtn').addEventListener('click', openCameraDrawer);
+      document.getElementById('closeCameraDrawerBtn').addEventListener('click', function () {
+        closeAllDrawers();
+        setBottomNavActive(navExploreBtn);
+      });
+
+      navCouponsBtn.addEventListener('click', function () {
+        placeSheet.classList.remove('open');
+        stopLiveCamera();
+        cameraDrawer.classList.remove('active');
+        couponsDrawer.classList.add('active');
+        setBottomNavActive(navCouponsBtn);
+        renderCoupons();
+      });
+
+      document.getElementById('closeCouponsDrawerBtn').addEventListener('click', function () {
+        closeAllDrawers();
+        setBottomNavActive(navExploreBtn);
+      });
+
+      // Cámara IA + proxy Gemini
+      var cameraVideo = document.getElementById('cameraVideo');
+      var cameraPreviewImg = document.getElementById('cameraPreviewImg');
+      var cameraPlaceholder = document.getElementById('cameraPlaceholder');
+      var liveCamBtnText = document.getElementById('liveCamBtnText');
+      var aiResultBox = document.getElementById('aiResultBox');
+      var aiDetectedTitle = document.getElementById('aiDetectedTitle');
+      var aiDetectedDesc = document.getElementById('aiDetectedDesc');
+      var aiMatchCountBadge = document.getElementById('aiMatchCountBadge');
+
+      function mapGeminiCategoryToMapChip(cat) {
+        if (cat === 'Ropa y calzado') return 'Ropa';
+        if (cat === 'Alimentos') return 'Alimentos';
+        if (cat === 'Bebés') return 'Bebés';
+        if (cat === 'Muebles' || cat === 'Electrodomésticos') return 'Muebles';
+        if (cat === 'Medicamentos y salud' || cat === 'Higiene y limpieza') return 'Salud';
+        if (cat === 'Tecnología') return 'Tecnología';
+        if (cat === 'Útiles escolares' || cat === 'Juguetes') return 'Útiles';
+        return 'all';
+      }
+
+      function showAiScanResult(chipCategory, itemLabel, detailText) {
+        detectedCategory = chipCategory;
+        var matching = DONATION_POINTS.filter(function (p) {
+          return matchesFilterAndSearch(p, chipCategory, '');
+        });
+        aiMatchCountBadge.textContent = matching.length + ' sedes en CABA';
+        aiDetectedTitle.textContent = 'Detectado: ' + itemLabel;
+        aiDetectedDesc.textContent =
+          detailText ||
+          'Categoría "' + chipCategory + '": hay ' + matching.length + ' organizaciones activas que lo reciben.';
+        aiResultBox.classList.add('visible');
+      }
+
+      function readStoredConfig() {
+        try {
+          return JSON.parse(localStorage.getItem('dona:config') || '{}') || {};
+        } catch (_e) {
+          return {};
+        }
+      }
+
+      function readStoredState() {
+        try {
+          return JSON.parse(localStorage.getItem('dona:v2') || '{}') || {};
+        } catch (_e) {
+          return {};
+        }
+      }
+
+      async function classifyPhotoWithProxy(base64) {
+        var cfg = readStoredConfig();
+        var endpoint = (cfg.sheetsEndpoint || '').trim();
+        if (!endpoint) {
+          aiMatchCountBadge.textContent = 'Modo manual';
+          aiDetectedTitle.textContent = 'Clasificación automática sin servidor conectado';
+          aiDetectedDesc.textContent =
+            'Guardamos la vista previa de tu foto. Tocá una de las categorías rápidas de arriba para filtrar el mapa.';
+          aiResultBox.classList.add('visible');
+          return;
+        }
+
+        aiMatchCountBadge.textContent = 'Analizando...';
+        aiDetectedTitle.textContent = 'Analizando imagen con Gemini...';
+        aiDetectedDesc.textContent = 'Identificando producto y organizaciones compatibles...';
+        aiResultBox.classList.add('visible');
+
+        var ctrl = new AbortController();
+        var timer = setTimeout(function () { ctrl.abort(); }, 20000);
+        try {
+          var res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+              action: 'tag',
+              mode: 'public',
+              clientKey: 'mapa-publico',
+              photoBase64: base64
+            }),
+            signal: ctrl.signal
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          var data = await res.json();
+          if (!data.ok || !data.result) throw new Error(data.error || 'Sin resultado');
+          var r = data.result;
+          var chip = mapGeminiCategoryToMapChip(r.categoria);
+          var tagsText = Array.isArray(r.etiquetas) && r.etiquetas.length
+            ? ' · Etiquetas: ' + r.etiquetas.slice(0, 4).join(', ')
+            : '';
+          showAiScanResult(chip, r.nombre || 'Donación identificada', 'Categoría: ' + (r.categoria || chip) + tagsText);
+        } catch (err) {
+          aiMatchCountBadge.textContent = 'Manual';
+          aiDetectedTitle.textContent = 'No pudimos analizar la foto con IA';
+          aiDetectedDesc.textContent = (err && err.message ? err.message : 'Error de red') + '. Elegí una categoría rápida arriba.';
+          aiResultBox.classList.add('visible');
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      function resizeDataUrl(dataUrl, maxDim, cb) {
+        var img = new Image();
+        img.onload = function () {
+          var w = img.width || 640;
+          var h = img.height || 480;
+          var scale = Math.min(1, maxDim / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * scale));
+          var ch = Math.max(1, Math.round(h * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = cw;
+          canvas.height = ch;
+          canvas.getContext('2d').drawImage(img, 0, 0, cw, ch);
+          var outDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          cb(outDataUrl, outDataUrl.split(',')[1] || '');
+        };
+        img.onerror = function () {
+          cb(dataUrl, dataUrl.split(',')[1] || '');
+        };
+        img.src = dataUrl;
+      }
+
+      document.getElementById('startLiveCameraBtn').addEventListener('click', async function () {
+        if (mediaStream) {
+          var canvas = document.createElement('canvas');
+          var vw = cameraVideo.videoWidth || 640;
+          var vh = cameraVideo.videoHeight || 480;
+          var scale = Math.min(1, 1024 / Math.max(vw, vh));
+          canvas.width = Math.max(1, Math.round(vw * scale));
+          canvas.height = Math.max(1, Math.round(vh * scale));
+          canvas.getContext('2d').drawImage(cameraVideo, 0, 0, canvas.width, canvas.height);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          cameraPreviewImg.src = dataUrl;
+          cameraPreviewImg.classList.add('active');
+          stopLiveCamera();
+          void classifyPhotoWithProxy(dataUrl.split(',')[1] || '');
+          return;
+        }
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false
+          });
+          cameraVideo.srcObject = mediaStream;
+          cameraVideo.classList.add('active');
+          cameraPreviewImg.classList.remove('active');
+          cameraPlaceholder.style.display = 'none';
+          liveCamBtnText.textContent = 'Capturar y Analizar';
+        } catch (_err) {
+          document.getElementById('photoInput').click();
+        }
+      });
+
+      document.getElementById('uploadPhotoBtn').addEventListener('click', function () {
+        document.getElementById('photoInput').click();
+      });
+
+      document.getElementById('photoInput').addEventListener('change', function (e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+          stopLiveCamera();
+          resizeDataUrl(ev.target.result, 1024, function (resizedUrl, base64) {
+            cameraPreviewImg.src = resizedUrl;
+            cameraPreviewImg.classList.add('active');
+            cameraPlaceholder.style.display = 'none';
+            void classifyPhotoWithProxy(base64);
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+
+      document.querySelectorAll('.preset-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          showAiScanResult(btn.getAttribute('data-preset'), btn.getAttribute('data-item'));
+        });
+      });
+
+      document.getElementById('applyAiFilterBtn').addEventListener('click', function () {
+        setActiveChip(detectedCategory || 'all');
+        renderMarkers(detectedCategory || 'all', '');
+        closeAllDrawers();
+        setBottomNavActive(navExploreBtn);
+        map.flyTo(CABA_CENTER, INITIAL_ZOOM, { duration: 0.45 });
+      });
+
+      // Cupones y QR
+      var USER_COUPONS = [
+        { id: 'c1', brand: "LEVI'S ARGENTINA", offer: '25% OFF en Jeans y Camperas', desc: 'Por donar prendas de denim o abrigo en ONGs de CABA.', code: 'DONA-LEVIS-25' },
+        { id: 'c2', brand: 'CAFÉ DE ESPECIALIDAD CABA', offer: '2x1 en Café Flat White o Latte', desc: 'Válido en cafeterías adheridas a 300m de tu punto de donación.', code: 'DONA-CAFE-2X1' },
+        { id: 'c3', brand: 'ADIDAS ORIGINALS', offer: '20% OFF en Calzado Seleccionado', desc: 'Beneficio de Economía Circular por donar calzado en buen estado.', code: 'DONA-ADIDAS-20' },
+        { id: 'c4', brand: 'NIKE BUENOS AIRES', offer: '15% OFF + Envío Gratis', desc: 'Acumulable en tienda online reciclando indumentaria deportiva.', code: 'DONA-NIKE-15' }
+      ];
+
+      var couponsListContainer = document.getElementById('couponsListContainer');
+      var totalCouponsCount = document.getElementById('totalCouponsCount');
+      var navCouponBadge = document.getElementById('navCouponBadge');
+      var qrModalBackdrop = document.getElementById('qrModalBackdrop');
+
+      function openQrModal(coupon) {
+        document.getElementById('qrModalBrand').textContent = coupon.brand;
+        document.getElementById('qrModalOffer').textContent = coupon.offer;
+        document.getElementById('qrModalCode').textContent = coupon.code;
+        var qrData = encodeURIComponent('https://dona-caba.app/?cupon=' + coupon.code);
+        document.getElementById('qrModalImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + qrData;
+        qrModalBackdrop.classList.add('open');
+      }
+
+      function renderCoupons() {
+        totalCouponsCount.textContent = USER_COUPONS.length;
+        navCouponBadge.textContent = USER_COUPONS.length;
+        couponsListContainer.innerHTML = '';
+
+        USER_COUPONS.forEach(function (coupon) {
+          var card = document.createElement('div');
+          card.className = 'coupon-card';
+          card.innerHTML =
+            '<div>' +
+            '<div class="coupon-brand">' + escapeHtml(coupon.brand) + '</div>' +
+            '<div class="coupon-offer">' + escapeHtml(coupon.offer) + '</div>' +
+            '<div class="coupon-desc">' + escapeHtml(coupon.desc) + '</div>' +
+            '</div>' +
+            '<button class="coupon-qr-btn" type="button">' +
+            '<span class="material-symbols-outlined" style="font-size:22px;">qr_code_2</span>' +
+            '<span>Ver QR</span>' +
+            '</button>';
+          card.querySelector('.coupon-qr-btn').addEventListener('click', function () {
+            openQrModal(coupon);
+          });
+          couponsListContainer.appendChild(card);
+        });
+      }
+
+      document.getElementById('claimCouponFromOngBtn').addEventListener('click', function () {
+        var ongName = selectedPoint ? selectedPoint.name : 'ONG de CABA';
+        var newCode = 'DONA-' + Math.floor(1000 + Math.random() * 9000);
+        var rewardCoupon = {
+          id: 'c-' + Date.now(),
+          brand: 'BENEFICIO DESBLOQUEADO • PASITO / MARCAS',
+          offer: '2x1 o 25% OFF por tu Donación',
+          desc: 'Generado al registrar entrega en ' + ongName + '.',
+          code: newCode
+        };
+        USER_COUPONS.unshift(rewardCoupon);
+        renderCoupons();
+        placeSheet.classList.remove('open');
+        openQrModal(rewardCoupon);
+      });
+
+      document.getElementById('closeQrModalBtn').addEventListener('click', function () {
+        qrModalBackdrop.classList.remove('open');
+      });
+      qrModalBackdrop.addEventListener('click', function (e) {
+        if (e.target === qrModalBackdrop) qrModalBackdrop.classList.remove('open');
+      });
+
+      // Fusión de sedes de Red doná (localStorage + Apps Script publicSedes)
+      function mergeNetworkSedes(orgs, sedes) {
+        for (var i = DONATION_POINTS.length - 1; i >= 0; i--) {
+          if (DONATION_POINTS[i].isNetworkSede) DONATION_POINTS.splice(i, 1);
+        }
+        var orgById = {};
+        (orgs || []).forEach(function (o) {
+          if (o && !o.deleted) orgById[o.id] = o;
+        });
+        (sedes || []).forEach(function (sede) {
+          if (!sede || sede.deleted || sede.active === false) return;
+          if (typeof sede.lat !== 'number' || typeof sede.lng !== 'number' || !Number.isFinite(sede.lat) || !Number.isFinite(sede.lng)) return;
+
+          var org = orgById[sede.orgId];
+          var orgName = org ? org.name : 'Red solidaria';
+          var rawContact = (org && org.contact ? String(org.contact) : '').trim();
+          var hasEmail = rawContact.indexOf('@') !== -1;
+          var hasPhone = /^[\d+\s()-]{6,}$/.test(rawContact);
+
+          DONATION_POINTS.push({
+            id: 'red-' + sede.id,
+            sedeId: sede.id,
+            isNetworkSede: true,
+            orgName: orgName,
+            name: sede.name,
+            zone: sede.locality || orgName,
+            category: 'Red',
+            categories: ['Ropa', 'Alimentos', 'Muebles', 'Salud', 'Útiles'],
+            items: 'Alimentos, Ropa, Muebles, Higiene y más (' + orgName + ')',
+            address: (sede.locality || 'Argentina') + ' · ' + orgName,
+            phone: hasPhone ? rawContact : '',
+            email: hasEmail ? rawContact : '',
+            website: '',
+            hours: '',
+            description: 'Sede conectada en vivo a la red solidaria ' + orgName + '.',
+            lat: sede.lat,
+            lng: sede.lng,
+            approx: false
+          });
+        });
+      }
+
+      async function boot() {
+        renderCoupons();
+        try {
+          var res = await fetch('./data/caba-ongs.json');
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          var payload = await res.json();
+          if (payload && Array.isArray(payload.items)) {
+            payload.items.forEach(function (item) {
+              DONATION_POINTS.push(item);
+            });
+          }
+        } catch (_err) {
+          showMapNotice('No pudimos cargar el padrón completo de organizaciones CABA.');
+        }
+
+        var storedState = readStoredState();
+        if (Array.isArray(storedState.sedes) && storedState.sedes.length > 0) {
+          mergeNetworkSedes(storedState.orgs || [], storedState.sedes);
+        }
+
+        renderMarkers(currentFilter, searchInput.value);
+
+        var cfg = readStoredConfig();
+        var endpoint = (cfg.sheetsEndpoint || '').trim();
+        if (endpoint) {
+          var ctrl = new AbortController();
+          var t = setTimeout(function () { ctrl.abort(); }, 6000);
+          var sep = endpoint.indexOf('?') !== -1 ? '&' : '?';
+          fetch(endpoint + sep + 'action=publicSedes', { signal: ctrl.signal })
+            .then(function (r) {
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              return r.json();
+            })
+            .then(function (data) {
+              if (data && data.ok && Array.isArray(data.sedes)) {
+                mergeNetworkSedes(data.orgs || [], data.sedes);
+                renderMarkers(currentFilter, searchInput.value);
+              }
+            })
+            .catch(function () {
+              // Sigue operando normalmente con el padrón local
+            })
+            .finally(function () {
+              clearTimeout(t);
+            });
+        }
+      }
+
+      void boot();
+    })();
+  </script>
+</body>
+</html>

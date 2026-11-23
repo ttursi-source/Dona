@@ -1,0 +1,103 @@
+/* Directional View Transitions for the Demo slide stage */
+::view-transition {
+  pointer-events: none;
+}
+
+.demo-slide-stage {
+  view-transition-name: demo-slide-stage;
+}
+
+@keyframes demo-slide-out-left {
+  to {
+    transform: translateX(-8%);
+    opacity: 0;
+  }
+}
+
+@keyframes demo-slide-in-right {
+  from {
+    transform: translateX(8%);
+    opacity: 0;
+  }
+}
+
+@keyframes demo-slide-out-right {
+  to {
+    transform: translateX(8%);
+    opacity: 0;
+  }
+}
+
+@keyframes demo-slide-in-left {
+  from {
+    transform: translateX(-8%);
+    opacity: 0;
+  }
+}
+
+::view-transition-group(demo-slide-stage) {
+  animation: 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html:active-view-transition-type(demo-forward)::view-transition-old(demo-slide-stage) {
+  animation-name: demo-slide-out-left;
+}
+
+html:active-view-transition-type(demo-forward)::view-transition-new(demo-slide-stage) {
+  animation-name: demo-slide-in-right;
+}
+
+html:active-view-transition-type(demo-backward)::view-transition-old(demo-slide-stage) {
+  animation-name: demo-slide-out-right;
+}
+
+html:active-view-transition-type(demo-backward)::view-transition-new(demo-slide-stage) {
+  animation-name: demo-slide-in-left;
+}
+
+/* Fallback compositor-only fade-slide when View Transitions aren't active */
+@keyframes demo-enter-soft {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes demo-flow-dash {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+.demo-enter-card {
+  opacity: 1;
+}
+
+.demo-triangle-flow {
+  stroke-dasharray: 8 6;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .demo-enter-card {
+    animation: demo-enter-soft 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .demo-triangle-flow {
+    animation: demo-flow-dash 1.8s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(demo-slide-stage) {
+    animation: none !important;
+  }
+}
+
+.demo-focus-ring:focus-visible {
+  outline: 3px solid #38bdf8;
+  outline-offset: 3px;
+}
