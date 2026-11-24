@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Clock,
   FileSpreadsheet,
+  House,
+  Map,
   MapPin,
   Maximize2,
   Megaphone,
@@ -86,6 +88,11 @@ const SLIDES: SlideMeta[] = [
     id: "roadmap",
     shortTitle: "Roadmap",
     liveTitle: "Roadmap de impacto y escala de doná",
+  },
+  {
+    id: "first-in-region",
+    shortTitle: "Pioneros en la región",
+    liveTitle: "doná va a ser la primera plataforma de la región en...",
   },
   {
     id: "thanks",
@@ -885,44 +892,66 @@ export default function DemoPresentation() {
         );
 
       case 10:
-      default:
         return (
           <section className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center text-center">
-            <h1 className="font-baskerville text-5xl font-bold tracking-tight text-[#f8fafc] sm:text-7xl">
-              Muchas gracias
-            </h1>
+            <BlurText
+              as="h1"
+              text="doná va a ser la primera plataforma de la región en..."
+              highlightPhrase="doná"
+              highlightColor="#38bdf8"
+              effect="blur"
+              animateBy="words"
+              direction="top"
+              staggerFrom="start"
+              trigger="load"
+              delay={120}
+              stepDuration={0.35}
+              blur={10}
+              distance={45}
+              className="font-baskerville justify-center text-center text-3xl font-bold leading-snug tracking-tight text-[#f8fafc] sm:text-5xl md:text-6xl"
+            />
+          </section>
+        );
 
-            <p className="mt-5 max-w-xl text-base text-[#cbd5e1] sm:text-xl">
-              Conectando ganas de ayudar con impacto social y ambiental real.
-            </p>
+      case 11:
+      default:
+        return (
+          <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center text-center">
+            <div className="flex flex-1 flex-col items-center justify-center py-6">
+              <h1 className="font-baskerville text-[clamp(3.75rem,9vw,8rem)] font-bold leading-none tracking-tight text-[#f8fafc]">
+                Muchas gracias
+              </h1>
+            </div>
 
-            <p className="mt-8 text-base font-medium text-[#cbd5e1] sm:text-lg">
-              <strong className="text-[#f8fafc]">Tomás Tursi</strong> · tursitomas@gmail.com · +54
-              11 31663378
-            </p>
+            <div className="flex shrink-0 flex-col items-center gap-4 pb-1 pt-4">
+              <div className="flex items-center justify-center gap-3">
+                <Link
+                  to="/"
+                  aria-label="Inicio"
+                  className="demo-focus-ring inline-flex aspect-square min-h-[48px] min-w-[48px] items-center justify-center rounded-xl border border-slate-700 bg-[#111827] text-[#38bdf8] transition hover:-translate-y-0.5 hover:border-[#38bdf8] hover:bg-[#1e293b]"
+                >
+                  <House className="h-5 w-5" aria-hidden="true" />
+                </Link>
+                <a
+                  href={mapaUrl}
+                  aria-label="Abrir Mapa CABA"
+                  className="demo-focus-ring inline-flex aspect-square min-h-[48px] min-w-[48px] items-center justify-center rounded-xl bg-[#38bdf8] text-[#090d16] shadow-[0_8px_24px_rgba(56,189,248,0.28)] transition hover:-translate-y-0.5 hover:bg-[#56ccf9]"
+                >
+                  <Map className="h-5 w-5" aria-hidden="true" />
+                </a>
+                <Link
+                  to="/organizacion"
+                  aria-label="Panel de Organizaciones"
+                  className="demo-focus-ring inline-flex aspect-square min-h-[48px] min-w-[48px] items-center justify-center rounded-xl border border-[#38bdf8]/45 bg-[#111827] text-[#38bdf8] transition hover:-translate-y-0.5 hover:border-[#38bdf8] hover:bg-[#1e293b]"
+                >
+                  <Building2 className="h-5 w-5" aria-hidden="true" />
+                </Link>
+              </div>
 
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link
-                to="/"
-                className="demo-focus-ring inline-flex min-h-[44px] items-center gap-2 rounded-full border border-slate-700 bg-[#111827] px-5 py-2.5 text-sm font-semibold text-[#f8fafc] transition hover:border-[#38bdf8]"
-              >
-                <ArrowLeft className="h-4 w-4 text-[#38bdf8]" aria-hidden="true" />
-                <span>Volver al inicio</span>
-              </Link>
-              <a
-                href={mapaUrl}
-                className="demo-focus-ring inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#38bdf8] px-5 py-2.5 text-sm font-bold text-[#090d16] transition hover:bg-[#56ccf9]"
-              >
-                <MapPin className="h-4 w-4" aria-hidden="true" />
-                <span>Abrir Mapa CABA</span>
-              </a>
-              <Link
-                to="/organizacion"
-                className="demo-focus-ring inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[#38bdf8]/45 bg-[#111827] px-5 py-2.5 text-sm font-semibold text-[#f8fafc] transition hover:border-[#38bdf8]"
-              >
-                <Building2 className="h-4 w-4 text-[#38bdf8]" aria-hidden="true" />
-                <span>Panel de Organizaciones</span>
-              </Link>
+              <p className="text-sm font-medium text-[#cbd5e1] sm:text-base">
+                <strong className="text-[#f8fafc]">Tomás Tursi</strong> · tursitomas@gmail.com ·
+                +54 11 31663378
+              </p>
             </div>
           </section>
         );
@@ -1026,7 +1055,11 @@ export default function DemoPresentation() {
           data-direction={navDirection}
           data-exiting={isExiting ? "true" : "false"}
           className={`demo-enter-card flex w-full flex-col ${
-            index === 4 ? "h-full flex-1 min-h-0" : "my-auto"
+            activeSlide.id === "map"
+              ? "h-full flex-1 min-h-0"
+              : activeSlide.id === "thanks"
+                ? "min-h-full flex-1"
+                : "my-auto"
           }`}
         >
           {slideContent}

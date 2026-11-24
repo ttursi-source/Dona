@@ -205,7 +205,7 @@ describe("DEMO competition presentation", () => {
     vi.useRealTimers();
   });
 
-  it("navigates all 11 slides via left dot rail, large bottom arrows, and keyboard", () => {
+  it("navigates all 12 slides via left dot rail, large bottom arrows, and keyboard", () => {
     mockReducedMotion(true);
     render(
       <MemoryRouter initialEntries={["/demo"]}>
@@ -304,22 +304,45 @@ describe("DEMO competition presentation", () => {
     expect(screen.getByText(/US\$\s*150\.000/i)).toBeInTheDocument();
     expect(screen.queryByText(/Lanzamiento piloto en CABA/i)).not.toBeInTheDocument();
 
-    // Advance -> Slide 11 (Final: Muchas gracias)
+    // Advance -> Slide 11 (First in region — pitch hook)
     fireEvent.click(nextBtn);
+    expect(screen.getByText("11 / 12")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: /doná va a ser la primera plataforma de la región en\.\.\./i,
+      })
+    ).toBeInTheDocument();
+
+    // Advance -> Slide 12 (Final: Muchas gracias)
+    fireEvent.click(nextBtn);
+    expect(screen.getByText("12 / 12")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: /^Muchas gracias$/i })).toBeInTheDocument();
     expect(screen.queryByText(/doná\s*·\s*Argentina/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Conectando ganas de ayudar/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Volver al inicio/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Tomás Tursi/i)).toBeInTheDocument();
     expect(screen.getByText(/tursitomas@gmail\.com/i)).toBeInTheDocument();
-
-    // Previous arrow -> back to Roadmap (Slide 10)
-    fireEvent.click(prevBtn);
-    expect(screen.getByRole("heading", { level: 1, name: /^Roadmap$/i })).toBeInTheDocument();
-
-    // Keyboard backward -> Slide 9 (Modelo de negocio)
-    fireEvent.keyDown(window, { key: "ArrowLeft" });
     expect(
-      screen.getByRole("heading", { level: 1, name: /^Modelo de negocio$/i })
+      screen.getAllByRole("link", { name: /^Inicio$/i }).some((el) => el.textContent?.trim() === "")
+    ).toBe(true);
+    expect(screen.getByRole("link", { name: /^Abrir Mapa CABA$/i }).textContent?.trim()).toBe("");
+    expect(
+      screen.getByRole("link", { name: /^Panel de Organizaciones$/i }).textContent?.trim()
+    ).toBe("");
+
+    // Previous arrow -> back to Slide 11 (Pioneros en la región)
+    fireEvent.click(prevBtn);
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: /doná va a ser la primera plataforma de la región en\.\.\./i,
+      })
     ).toBeInTheDocument();
+
+    // Keyboard backward -> back to Roadmap (Slide 10)
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(screen.getByRole("heading", { level: 1, name: /^Roadmap$/i })).toBeInTheDocument();
   });
 
   it("lets OrgChoice open Modo Demo as Sede Central or Sede Afiliada past RequireRole", async () => {
@@ -411,6 +434,16 @@ describe("DEMO competition presentation", () => {
 
     // Slide 10 (Roadmap)
     fireEvent.click(screen.getByRole("button", { name: "Ir a diapositiva 10: Roadmap" }));
+    await expectNoSeriousA11yViolations(container);
+
+    // Slide 11 (Pioneros en la región)
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ir a diapositiva 11: Pioneros en la región" })
+    );
+    await expectNoSeriousA11yViolations(container);
+
+    // Slide 12 (Muchas gracias)
+    fireEvent.click(screen.getByRole("button", { name: "Ir a diapositiva 12: Muchas gracias" }));
     await expectNoSeriousA11yViolations(container);
   }, 15000);
 });
